@@ -41,7 +41,7 @@ export const CompatibilityStatus: React.FC<CompatibilityStatusProps> = ({
           <ul className="space-y-1 bg-neutral-950 p-3 rounded border border-neutral-800">
             {compatibility.reasons.map((reason, idx) => (
               <li
-                key={idx}
+                key={reason || `reason-${idx}`}
                 className="text-xs text-neutral-300 font-sans flex items-start gap-2 leading-relaxed"
               >
                 <span className="text-status-error">•</span>

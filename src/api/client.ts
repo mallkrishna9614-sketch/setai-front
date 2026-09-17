@@ -61,18 +61,25 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
       let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
       try {
         const errorJson = await response.json();
-        if (errorJson?.error?.message) {
+        if (errorJson?.error?.message && typeof errorJson.error.message === 'string') {
           errorMessage = errorJson.error.message;
         } else if (typeof errorJson?.detail === 'string') {
           errorMessage = errorJson.detail;
         } else if (Array.isArray(errorJson?.detail)) {
           errorMessage = errorJson.detail
-            .map((item: any) => item?.msg || item?.message || JSON.stringify(item))
+            .map((item: any) => {
+              if (typeof item === 'string') return item;
+              return item?.msg || item?.message || JSON.stringify(item);
+            })
             .join('; ');
         } else if (errorJson?.detail && typeof errorJson.detail === 'object') {
-          errorMessage = errorJson.detail.message || errorJson.detail.msg || errorMessage;
-        } else if (errorJson?.message) {
+          errorMessage = errorJson.detail.message || errorJson.detail.msg || JSON.stringify(errorJson.detail);
+        } else if (typeof errorJson?.message === 'string') {
           errorMessage = errorJson.message;
+        } else if (typeof errorJson?.error === 'string') {
+          errorMessage = errorJson.error;
+        } else if (errorJson && typeof errorJson === 'object') {
+          errorMessage = JSON.stringify(errorJson);
         }
       } catch {
         // use fallback statusText
@@ -108,7 +115,7 @@ export async function checkBackendHealth(): Promise<{ ok: boolean; message: stri
       return { ok: true, message: `Connected to live FastAPI backend (${latencyMs}ms)`, latencyMs };
     }
     return { ok: false, message: `Backend responded with HTTP ${res.status}`, latencyMs };
-  } catch (err: any) {
+  } catch {
     const latencyMs = Math.round(performance.now() - startTime);
     return { ok: false, message: 'Backend unreachable / offline', latencyMs };
   }

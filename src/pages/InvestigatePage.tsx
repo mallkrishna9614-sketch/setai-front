@@ -4,6 +4,7 @@ import type { ImageMetadata, Modality } from '../types/image';
 import type { InvestigationResponse } from '../types/investigation';
 import { uploadImage } from '../api/images';
 import { createInvestigation } from '../api/investigations';
+import { isMockMode } from '../api/client';
 import { MissionInput } from '../components/investigation/MissionInput';
 import { ImageUploader } from '../components/investigation/ImageUploader';
 import { ImageViewer } from '../components/investigation/ImageViewer';
@@ -33,7 +34,9 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   const [query, setQuery] = useState<string>(
     'Describe the land-cover and major objects visible in this image.'
   );
-  const [images, setImages] = useState<ImageMetadata[]>([MOCK_IMAGES.img_s2_optical_t1]);
+  const [images, setImages] = useState<ImageMetadata[]>(() =>
+    isMockMode() ? [MOCK_IMAGES.img_s2_optical_t1] : []
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [investigation, setInvestigation] = useState<InvestigationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,12 +74,26 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   };
 
   const handleUploadFile = async (file: File, modality: Modality) => {
-    const res = await uploadImage(file, modality);
-    if (res.image) {
-      handleAddImage({
-        ...res.image,
-        slot_label: images.length === 0 ? 'Image 1' : 'Image 2'
-      });
+    try {
+      const res = await uploadImage(file, modality);
+      if (res.image) {
+        setImages(prev => {
+          const nonMock = !isMockMode()
+            ? prev.filter(img => !img.image_id.startsWith('img_mock_') && !img.image_id.startsWith('img_s2_'))
+            : prev;
+
+          if (nonMock.length === 0) {
+            return [{ ...res.image, slot_label: 'Image 1' }];
+          }
+          if (nonMock.length === 1) {
+            return [...nonMock, { ...res.image, slot_label: 'Image 2' }];
+          }
+          return [{ ...res.image, slot_label: 'Image 1' }, nonMock[1]];
+        });
+        setError(null);
+      }
+    } catch (uploadErr: any) {
+      setError(uploadErr.message || 'Image upload failed.');
     }
   };
 
@@ -86,9 +103,26 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
       return;
     }
     if (images.length === 0) {
-      setError('Please provide at least one satellite image.');
+      setError('Please upload a satellite raster image (.tif / .tiff) to investigate.');
       return;
     }
+
+    // Safety check: prevent sending mock image IDs to live FastAPI backend
+    if (!isMockMode()) {
+      const mockImages = images.filter(
+        i => i.image_id.startsWith('img_mock_') || i.image_id.startsWith('img_s2_')
+      );
+      if (mockImages.length > 0) {
+        setError('Please upload a satellite raster image (.tif / .tiff) to investigate with the live backend.');
+        return;
+      }
+    }
+
+    const imageIds = images.map(i => i.image_id);
+    console.log('SatQuery AI - Investigation Request:', {
+      query: query.trim(),
+      image_ids: imageIds
+    });
 
     setIsLoading(true);
     setError(null);
@@ -96,10 +130,10 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
     try {
       const response = await createInvestigation({
         query: query.trim(),
-        image_ids: images.map(i => i.image_id)
+        image_ids: imageIds
       });
-      console.log('SatQuery AI - LIVE INVESTIGATION RESPONSE:', response);
-      console.log('SatQuery AI - LIVE CONFIDENCE:', response?.execution?.confidence);
+      console.log('SatQuery AI - Live Investigation Response:', response);
+      console.log('SatQuery AI - Confidence:', response?.execution?.confidence);
       console.log(
         'SatQuery AI - CONFIDENCE TYPE:',
         Array.isArray(response?.execution?.confidence)
@@ -119,7 +153,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
 
   const handleResetWorkspace = () => {
     setQuery('Describe the land-cover and major objects visible in this image.');
-    setImages([MOCK_IMAGES.img_s2_optical_t1]);
+    setImages(isMockMode() ? [MOCK_IMAGES.img_s2_optical_t1] : []);
     setInvestigation(null);
     setError(null);
   };

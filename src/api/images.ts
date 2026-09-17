@@ -44,10 +44,22 @@ export async function uploadImage(file: File, modality: Modality): Promise<Image
     return { image: mockImage };
   }
 
-  // Live FastAPI backend: POST /api/v1/images/upload
-  const backendModality = String(modality).trim().toLowerCase();
+  // TIFF file validation: accept .tif and .tiff
+  const filename = file.name.toLowerCase();
+  if (!filename.endsWith('.tif') && !filename.endsWith('.tiff')) {
+    throw new Error('Only GeoTIFF files (.tif, .tiff) are accepted.');
+  }
 
-  if (!['optical', 'multispectral', 'sar'].includes(backendModality)) {
+  // Live FastAPI backend: POST /api/v1/images/upload
+  const modalityMap = {
+    Optical: 'optical',
+    Multispectral: 'multispectral',
+    SAR: 'sar',
+  } as const;
+
+  const backendModality = modalityMap[modality];
+
+  if (!backendModality) {
     throw new Error(`Invalid modality: ${modality}`);
   }
 
@@ -59,6 +71,8 @@ export async function uploadImage(file: File, modality: Modality): Promise<Image
     method: 'POST',
     body: formData
   });
+
+  console.log('SatQuery AI - Upload Success:', response);
 
   // Attach local blob preview for UI rendering if none provided by backend
   if (response.image && !response.image.preview_url) {

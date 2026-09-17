@@ -31,7 +31,7 @@ export const ModelResultsList: React.FC<ModelResultsListProps> = ({ models = [] 
 
           return (
             <div
-              key={idx}
+              key={m.model_name ? `${m.model_name}-${m.task || idx}` : `model-res-${idx}`}
               className="p-3.5 bg-neutral-950 border border-neutral-800 rounded space-y-2"
             >
               <div className="flex items-start justify-between gap-2 text-xs">

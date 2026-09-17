@@ -54,7 +54,10 @@ export const ExecutionTrace: React.FC<ExecutionTraceProps> = ({
         <div className="p-5 pt-2 border-t border-neutral-800 bg-neutral-950/40 space-y-3">
           <div className="space-y-3 pl-2">
             {trace.map((step, idx) => (
-              <div key={idx} className="space-y-0.5 text-xs">
+              <div
+                key={step.step ? `${step.step}-${step.timestamp || idx}` : `trace-${idx}`}
+                className="space-y-0.5 text-xs"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-neutral-200">

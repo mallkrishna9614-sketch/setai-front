@@ -231,7 +231,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".tif,.tiff,.geotif,.geotiff,image/*"
+              accept=".tif,.tiff"
               onChange={handleFileChange}
               className="hidden"
             />

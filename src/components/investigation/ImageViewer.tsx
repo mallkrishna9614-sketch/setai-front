@@ -375,7 +375,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         }}
                       >
                         <div className="absolute -top-5 left-0 bg-neutral-900 border border-neutral-800 text-neutral-200 px-1.5 py-0.5 rounded text-[10px] font-sans">
-                          {reg.label} {reg.confidence ? `· ${(reg.confidence * 100).toFixed(1)}%` : ''}
+                          {reg.label} {typeof reg.confidence === 'number' && Number.isFinite(reg.confidence) ? `· ${(reg.confidence <= 1 ? reg.confidence * 100 : reg.confidence).toFixed(1)}%` : ''}
                         </div>
                       </div>
                     );
@@ -402,7 +402,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                         }}
                       >
                         <div className="absolute -top-5 left-0 bg-neutral-900 border border-neutral-800 text-neutral-200 px-1.5 py-0.5 rounded text-[10px] font-sans whitespace-nowrap">
-                          {reg.label} {reg.confidence ? `· ${(reg.confidence * 100).toFixed(1)}%` : ''}
+                          {reg.label} {typeof reg.confidence === 'number' && Number.isFinite(reg.confidence) ? `· ${(reg.confidence <= 1 ? reg.confidence * 100 : reg.confidence).toFixed(1)}%` : ''}
                         </div>
                       </div>
                     );

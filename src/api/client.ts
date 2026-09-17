@@ -7,15 +7,18 @@
  * 2. Runtime user override stored in localStorage
  */
 
-const ENV_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
-const ENV_MOCK_MODE = import.meta.env.VITE_USE_MOCK_API === 'true' || import.meta.env.VITE_USE_MOCK_API === undefined;
+const ENV_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://127.0.0.1:8000/api/v1';
+
+const ENV_MOCK_MODE =
+  import.meta.env.VITE_USE_MOCK_API === 'true';
 
 export const STORAGE_KEY_BASE_URL = 'satquery_api_base_url';
 export const STORAGE_KEY_MOCK_MODE = 'satquery_use_mock_api';
 
 export function getApiBaseUrl(): string {
-  const saved = localStorage.getItem(STORAGE_KEY_BASE_URL);
-  return saved || ENV_BASE_URL;
+  return ENV_BASE_URL.replace(/\/+$/, '');
 }
 
 export function setApiBaseUrl(url: string): void {
@@ -23,10 +26,6 @@ export function setApiBaseUrl(url: string): void {
 }
 
 export function isMockMode(): boolean {
-  const saved = localStorage.getItem(STORAGE_KEY_MOCK_MODE);
-  if (saved !== null) {
-    return saved === 'true';
-  }
   return ENV_MOCK_MODE;
 }
 
@@ -62,7 +61,19 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
       let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
       try {
         const errorJson = await response.json();
-        errorMessage = errorJson.detail || errorJson.message || errorMessage;
+        if (errorJson?.error?.message) {
+          errorMessage = errorJson.error.message;
+        } else if (typeof errorJson?.detail === 'string') {
+          errorMessage = errorJson.detail;
+        } else if (Array.isArray(errorJson?.detail)) {
+          errorMessage = errorJson.detail
+            .map((item: any) => item?.msg || item?.message || JSON.stringify(item))
+            .join('; ');
+        } else if (errorJson?.detail && typeof errorJson.detail === 'object') {
+          errorMessage = errorJson.detail.message || errorJson.detail.msg || errorMessage;
+        } else if (errorJson?.message) {
+          errorMessage = errorJson.message;
+        }
       } catch {
         // use fallback statusText
       }

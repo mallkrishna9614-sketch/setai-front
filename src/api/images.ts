@@ -45,9 +45,15 @@ export async function uploadImage(file: File, modality: Modality): Promise<Image
   }
 
   // Live FastAPI backend: POST /api/v1/images/upload
+  const backendModality = String(modality).trim().toLowerCase();
+
+  if (!['optical', 'multispectral', 'sar'].includes(backendModality)) {
+    throw new Error(`Invalid modality: ${modality}`);
+  }
+
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('modality', modality);
+  formData.append('modality', backendModality);
 
   const response = await apiFetch<ImageUploadResponse>('/images/upload', {
     method: 'POST',

@@ -98,6 +98,14 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
         query: query.trim(),
         image_ids: images.map(i => i.image_id)
       });
+      console.log('SatQuery AI - LIVE INVESTIGATION RESPONSE:', response);
+      console.log('SatQuery AI - LIVE CONFIDENCE:', response?.execution?.confidence);
+      console.log(
+        'SatQuery AI - CONFIDENCE TYPE:',
+        Array.isArray(response?.execution?.confidence)
+          ? 'array'
+          : typeof response?.execution?.confidence
+      );
       setInvestigation(response);
       if (onMissionCompleted) {
         onMissionCompleted();

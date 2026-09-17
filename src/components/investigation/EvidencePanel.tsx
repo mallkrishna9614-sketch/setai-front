@@ -16,7 +16,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence = [] }) =
 
   const filteredItems = selectedFilter === 'ALL'
     ? evidence
-    : evidence.filter(item => item.type === selectedFilter);
+    : evidence.filter(item => String(item.type).toLowerCase() === selectedFilter.toLowerCase());
 
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-5 space-y-4">
@@ -34,7 +34,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence = [] }) =
         {/* Filter buttons */}
         <div className="flex items-center gap-1 text-xs">
           {categories.map((cat) => {
-            const count = cat === 'ALL' ? evidence.length : evidence.filter(e => e.type === cat).length;
+            const count = cat === 'ALL' ? evidence.length : evidence.filter(e => String(e.type).toLowerCase() === cat.toLowerCase()).length;
             if (cat !== 'ALL' && count === 0) return null;
             return (
               <button
@@ -56,17 +56,17 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence = [] }) =
 
       {/* Items list */}
       <div className="space-y-3">
-        {filteredItems.map((item) => (
+        {filteredItems.map((item, index) => (
           <div
-            key={item.id}
+            key={item.id || `${item.type}-${item.task || (item as any).metadata?.task_type || 'obs'}-${index}`}
             className="p-3 bg-neutral-950 border border-neutral-800 rounded space-y-1.5"
           >
             <div className="flex items-center justify-between text-xs">
-              <span className="text-neutral-300 font-medium">
+              <span className="text-neutral-300 font-medium capitalize">
                 {item.type} observation
               </span>
               <span className="text-neutral-500 font-mono text-[11px]">
-                {item.source} · {item.model_version}
+                {item.source || 'Model'} {item.model_version ? `· ${item.model_version}` : (item as any).metadata?.model_version ? `· ${(item as any).metadata.model_version}` : ''}
               </span>
             </div>
 
@@ -75,10 +75,10 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ evidence = [] }) =
             </p>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-neutral-900 text-[11px] text-neutral-500 font-mono">
-              <span>Task: {item.task}</span>
-              {item.metrics && Object.keys(item.metrics).length > 0 && (
+              <span>Task: {item.task || (item as any).metadata?.task_type || 'General'}</span>
+              {((item.metrics && Object.keys(item.metrics).length > 0) || ((item as any).metadata && Object.keys((item as any).metadata).length > 0)) && (
                 <span>
-                  Metrics: {JSON.stringify(item.metrics)}
+                  Metadata: {JSON.stringify(item.metrics || (item as any).metadata)}
                 </span>
               )}
             </div>

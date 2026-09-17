@@ -23,7 +23,12 @@ export const ModelResultsList: React.FC<ModelResultsListProps> = ({ models = [] 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {models.map((m, idx) => {
-          const isSuccess = m.status === 'success';
+          const isSuccess = m.status === 'success' || (m as any).success === true;
+          const version = m.version || (m as any).model_version || '';
+          const task = m.task || (m as any).task_type || '';
+          const description = m.description || (m as any).error || '';
+          const outputData = m.output ?? (m as any).result ?? ((m as any).error ? { error: (m as any).error } : null);
+
           return (
             <div
               key={idx}
@@ -35,13 +40,17 @@ export const ModelResultsList: React.FC<ModelResultsListProps> = ({ models = [] 
                     <span className="font-medium text-neutral-200">
                       {m.model_name}
                     </span>
-                    <span className="text-[11px] font-mono text-neutral-500">
-                      {m.version}
-                    </span>
+                    {version && (
+                      <span className="text-[11px] font-mono text-neutral-500">
+                        {version}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[11px] text-neutral-400 mt-0.5 block">
-                    {m.task}
-                  </span>
+                  {task && (
+                    <span className="text-[11px] text-neutral-400 mt-0.5 block">
+                      {task}
+                    </span>
+                  )}
                 </div>
 
                 <span
@@ -53,16 +62,18 @@ export const ModelResultsList: React.FC<ModelResultsListProps> = ({ models = [] 
                 </span>
               </div>
 
-              <p className="text-xs text-neutral-300 font-sans leading-relaxed">
-                {m.description}
-              </p>
+              {description && (
+                <p className="text-xs text-neutral-300 font-sans leading-relaxed">
+                  {description}
+                </p>
+              )}
 
-              {m.output && (
+              {outputData && (
                 <div className="text-[11px] font-mono text-neutral-400 bg-neutral-900 p-2 rounded border border-neutral-800 overflow-x-auto">
                   <pre className="text-neutral-300 font-mono whitespace-pre-wrap break-all">
-                    {typeof m.output === 'string'
-                      ? m.output
-                      : JSON.stringify(m.output, null, 2)}
+                    {typeof outputData === 'string'
+                      ? outputData
+                      : JSON.stringify(outputData, null, 2)}
                   </pre>
                 </div>
               )}

@@ -1,29 +1,67 @@
 import React from 'react';
 import type { ConfidenceData } from '../../types/investigation';
-import { formatConfidencePercent } from '../../utils/formatters';
+import { formatConfidencePercent, normalizeConfidence } from '../../utils/formatters';
 
 interface ConfidenceGaugeProps {
-  confidence?: ConfidenceData;
+  confidence?: ConfidenceData | ConfidenceData[];
 }
 
 export const ConfidenceGauge: React.FC<ConfidenceGaugeProps> = ({ confidence }) => {
-  if (!confidence) return null;
+  const normalizedConfidence = normalizeConfidence(confidence);
 
-  const pct = confidence.score <= 1.0 ? confidence.score * 100 : confidence.score;
-  const isHigh = confidence.label === 'HIGH';
-  const isMed = confidence.label === 'MEDIUM';
+  if (!normalizedConfidence) {
+    return null;
+  }
 
-  const barColor = isHigh
-    ? 'bg-status-success'
-    : isMed
-    ? 'bg-status-warning'
-    : 'bg-status-error';
+  const rawScore = normalizedConfidence.score !== undefined
+    ? normalizedConfidence.score
+    : normalizedConfidence.confidence;
 
-  const labelText = isHigh
+  const hasValidScore =
+    typeof rawScore === 'number' &&
+    Number.isFinite(rawScore);
+
+  if (!hasValidScore) {
+    console.warn(
+      'SatQuery AI: confidence score missing from backend response',
+      confidence
+    );
+  }
+
+  const pct = hasValidScore
+    ? rawScore <= 1
+      ? rawScore * 100
+      : rawScore
+    : 0;
+
+  const rawLabel = String(normalizedConfidence.label || '').toUpperCase();
+  const isHigh = hasValidScore && rawLabel === 'HIGH';
+  const isMed = hasValidScore && rawLabel === 'MEDIUM';
+
+  const barColor = hasValidScore
+    ? isHigh
+      ? 'bg-status-success'
+      : isMed
+      ? 'bg-status-warning'
+      : 'bg-status-error'
+    : 'bg-neutral-700';
+
+  const labelText = !hasValidScore
+    ? 'Confidence unavailable'
+    : isHigh
     ? 'High confidence'
     : isMed
     ? 'Medium confidence'
     : 'Low confidence';
+
+  const modelName =
+    typeof normalizedConfidence.associated_model === 'string'
+      ? normalizedConfidence.associated_model
+      : typeof normalizedConfidence.model?.name === 'string'
+      ? normalizedConfidence.model.name
+      : 'Consensus engine';
+
+  const taskDomain = normalizedConfidence.task_type || 'General EO';
 
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-5 space-y-4">
@@ -34,7 +72,9 @@ export const ConfidenceGauge: React.FC<ConfidenceGaugeProps> = ({ confidence }) 
         </h3>
         <span
           className={`text-xs font-medium ${
-            isHigh
+            !hasValidScore
+              ? 'text-neutral-500'
+              : isHigh
               ? 'text-status-success'
               : isMed
               ? 'text-status-warning'
@@ -49,10 +89,10 @@ export const ConfidenceGauge: React.FC<ConfidenceGaugeProps> = ({ confidence }) 
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
           <span className="text-2xl font-semibold font-mono text-neutral-100">
-            {formatConfidencePercent(confidence.score)}
+            {hasValidScore ? formatConfidencePercent(rawScore) : 'N/A'}
           </span>
           <span className="text-xs text-neutral-400">
-            Computed by {confidence.associated_model || 'Consensus engine'}
+            Computed by {modelName}
           </span>
         </div>
 
@@ -69,18 +109,18 @@ export const ConfidenceGauge: React.FC<ConfidenceGaugeProps> = ({ confidence }) 
       <div className="pt-2 border-t border-neutral-800 space-y-2 text-xs">
         <div className="flex items-center justify-between text-neutral-400">
           <span>Task domain:</span>
-          <span className="text-neutral-200 font-medium">{confidence.task_type}</span>
+          <span className="text-neutral-200 font-medium">{taskDomain}</span>
         </div>
 
-        {confidence.factors && confidence.factors.length > 0 && (
+        {normalizedConfidence.factors && normalizedConfidence.factors.length > 0 && (
           <div className="space-y-1 pt-1">
             <span className="text-neutral-400 block">
               Contributing factors:
             </span>
             <ul className="space-y-1">
-              {confidence.factors.map((factor, idx) => (
+              {normalizedConfidence.factors.map((factor, idx) => (
                 <li
-                  key={idx}
+                  key={`factor-${idx}`}
                   className="text-neutral-300 font-sans flex items-start gap-1.5 leading-relaxed"
                 >
                   <span className="text-neutral-500">•</span>

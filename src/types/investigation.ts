@@ -30,10 +30,13 @@ export interface EvidenceItem {
 }
 
 export interface ConfidenceData {
-  score: number; // 0 to 1 (e.g. 0.936) or percentage
-  label: 'HIGH' | 'MEDIUM' | 'LOW';
-  associated_model: string;
-  task_type: string;
+  score?: number | null;
+  confidence?: number | null;
+  label?: 'HIGH' | 'MEDIUM' | 'LOW' | string;
+  associated_model?: string;
+  task_type?: string;
+  task_id?: string;
+  model?: { name?: string; version?: string } | Record<string, string>;
   factors?: string[];
 }
 
@@ -63,9 +66,9 @@ export interface TraceStep {
     | 'confidence_calculation'
     | 'investigation_completed'
     | string;
-  status: 'completed' | 'in_progress' | 'pending' | 'failed';
+  status: 'completed' | 'in_progress' | 'pending' | 'failed' | string;
   timestamp: string;
-  details: string;
+  details?: string | Record<string, any>;
 }
 
 export interface FindingRegion {
@@ -94,9 +97,9 @@ export interface InvestigationFinding {
 export interface ExecutionData {
   model_results: ModelResult[];
   evidence: EvidenceItem[];
-  confidence: ConfidenceData;
+  confidence: ConfidenceData | ConfidenceData[];
   conflicts: ConflictItem[];
-  compatibility: CompatibilityData;
+  compatibility?: CompatibilityData;
   trace: TraceStep[];
 }
 

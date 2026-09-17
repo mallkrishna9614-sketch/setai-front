@@ -3,7 +3,8 @@ import {
   ZoomIn, 
   ZoomOut, 
   RotateCcw, 
-  Eye
+  Eye,
+  Layers
 } from 'lucide-react';
 import type { ImageMetadata } from '../../types/image';
 import type { FindingRegion } from '../../types/investigation';
@@ -28,12 +29,92 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const [swipePosition, setSwipePosition] = useState<number>(50); // percentage
   const [mouseCoords, setMouseCoords] = useState<{ x: number; y: number; lat?: number; lon?: number } | null>(null);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
   const swipeBarRef = useRef<HTMLDivElement>(null);
 
   const hasMultipleImages = images.length > 1;
   const currentImage = images[activeImageIndex] || images[0];
+
+  const isRawTiff = (url?: string, filename?: string) => {
+    if (!url) return true;
+    const fname = (filename || '').toLowerCase();
+    const isTiffExt = fname.endsWith('.tif') || fname.endsWith('.tiff');
+    return isTiffExt && (url.startsWith('blob:') || url.endsWith('.tif') || url.endsWith('.tiff'));
+  };
+
+  const renderRasterDisplay = (
+    image: ImageMetadata,
+    options: {
+      isAbsolute?: boolean;
+      customStyle?: React.CSSProperties;
+      customClass?: string;
+    } = {}
+  ) => {
+    const isFailed = !image || failedImages[image.image_id] || isRawTiff(image.preview_url, image.filename);
+
+    if (isFailed) {
+      return (
+        <div
+          className={`${
+            options.isAbsolute ? 'absolute inset-0' : 'w-full h-full'
+          } ${options.customClass || ''} flex flex-col items-center justify-center bg-neutral-950 border border-neutral-800 p-6 text-center select-none overflow-hidden`}
+          style={options.customStyle}
+        >
+          <div
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 1px 1px, #525252 1px, transparent 0)',
+              backgroundSize: '20px 20px'
+            }}
+          />
+
+          <div className="relative z-10 w-14 h-14 rounded-full bg-neutral-900 border border-neutral-700/80 flex items-center justify-center mb-3 shadow-inner">
+            <Layers className="w-6 h-6 text-neutral-300" />
+            <div className="absolute inset-0 rounded-full border border-neutral-600/30 animate-pulse" />
+          </div>
+
+          <div className="relative z-10 space-y-1 max-w-xs">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-neutral-800 text-neutral-200 border border-neutral-700">
+                {image.modality}
+              </span>
+              <span className="text-xs font-medium text-neutral-200 font-mono truncate max-w-[170px]" title={image.filename}>
+                {image.filename}
+              </span>
+            </div>
+
+            <p className="text-[11px] text-neutral-400 font-sans">
+              GeoTIFF Raster ({image.width} × {image.height})
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[10px] font-mono text-neutral-500">
+              <span>{image.bands} bands</span>
+              <span>·</span>
+              <span>{image.dtype}</span>
+              {image.crs && (
+                <>
+                  <span>·</span>
+                  <span>{image.crs}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={image.preview_url}
+        alt={image.filename}
+        onError={() => setFailedImages((prev) => ({ ...prev, [image.image_id]: true }))}
+        className={`${options.isAbsolute ? 'absolute inset-0' : 'w-full h-full'} ${options.customClass || ''} object-contain pointer-events-none`}
+        style={options.customStyle}
+      />
+    );
+  };
 
   useEffect(() => {
     if (images.length === 2 && !isSwipeMode) {
@@ -233,11 +314,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               /* Split-screen swipe view */
               <div className="relative w-[600px] h-[600px] max-w-full max-h-full aspect-square border border-neutral-800 shadow-lg overflow-hidden">
                 {/* Image 2 (Underneath) */}
-                <img
-                  src={images[1].preview_url}
-                  alt={images[1].filename}
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                />
+                {renderRasterDisplay(images[1], { isAbsolute: true })}
                 <div className="absolute top-3 right-3 bg-neutral-950/80 px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10">
                   {images[1].slot_label || 'Image 2'} ({images[1].modality})
                 </div>
@@ -247,11 +324,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   className="absolute inset-0 overflow-hidden"
                   style={{ width: `${swipePosition}%` }}
                 >
-                  <img
-                    src={images[0].preview_url}
-                    alt={images[0].filename}
-                    className="absolute inset-0 w-[600px] h-[600px] max-w-none object-contain pointer-events-none"
-                  />
+                  {renderRasterDisplay(images[0], {
+                    isAbsolute: true,
+                    customClass: 'w-[600px] h-[600px] max-w-none'
+                  })}
                   <div className="absolute top-3 left-3 bg-neutral-950/80 px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10">
                     {images[0].slot_label || 'Image 1'} ({images[0].modality})
                   </div>
@@ -285,11 +361,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
                 {/* Overlays */}
                 {showOverlays &&
-                  regions.map((reg) => {
+                  regions.map((reg, rIdx) => {
                     const [ymin, xmin, ymax, xmax] = reg.bbox;
                     return (
                       <div
-                        key={reg.id}
+                        key={reg.id || `reg-swipe-${rIdx}`}
                         className="absolute border border-status-error bg-status-error/15 rounded z-25 pointer-events-none"
                         style={{
                           top: `${ymin * 100}%`,
@@ -308,19 +384,15 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             ) : (
               /* Single image view */
               <div className="relative w-[600px] h-[600px] max-w-full max-h-full aspect-square border border-neutral-800 shadow-lg overflow-hidden bg-neutral-950">
-                <img
-                  src={currentImage?.preview_url}
-                  alt={currentImage?.filename}
-                  className="w-full h-full object-contain pointer-events-none"
-                />
+                {renderRasterDisplay(currentImage)}
 
                 {/* Overlays */}
                 {showOverlays &&
-                  regions.map((reg) => {
+                  regions.map((reg, rIdx) => {
                     const [ymin, xmin, ymax, xmax] = reg.bbox;
                     return (
                       <div
-                        key={reg.id}
+                        key={reg.id || `reg-single-${rIdx}`}
                         className="absolute border border-status-error bg-status-error/15 rounded z-20 pointer-events-none"
                         style={{
                           top: `${ymin * 100}%`,

@@ -4,6 +4,16 @@ import type { InvestigationResponse } from '../types/investigation';
 import { getStoredMissions, downloadReport } from '../api/investigations';
 import { formatDateTime, formatConfidencePercent } from '../utils/formatters';
 
+const getConfidenceInfo = (confidence?: any) => {
+  if (!confidence) return { score: undefined, label: 'N/A', model: 'Consensus engine' };
+  const conf = Array.isArray(confidence) ? (confidence[0] ?? null) : confidence;
+  if (!conf) return { score: undefined, label: 'N/A', model: 'Consensus engine' };
+  const score = conf.score !== undefined ? conf.score : conf.confidence;
+  const label = conf.label || 'N/A';
+  const model = conf.associated_model || conf.model?.name || 'Consensus engine';
+  return { score, label, model };
+};
+
 export const ReportsPage: React.FC = () => {
   const [reports, setReports] = useState<InvestigationResponse[]>([]);
   const [search, setSearch] = useState<string>('');
@@ -106,7 +116,7 @@ export const ReportsPage: React.FC = () => {
                       <td className="px-4 py-3 font-mono whitespace-nowrap">
                         {isCompleted ? (
                           <span className="text-status-success font-medium">
-                            {formatConfidencePercent(r.execution?.confidence?.score || 0)}
+                            {formatConfidencePercent(getConfidenceInfo(r.execution?.confidence).score)}
                           </span>
                         ) : (
                           <span className="text-neutral-500">N/A</span>
@@ -195,10 +205,10 @@ export const ReportsPage: React.FC = () => {
               <div className="border border-neutral-800 p-3 rounded bg-neutral-950 space-y-1 text-xs">
                 <div className="font-semibold text-neutral-200 font-sans">2. Confidence assessment</div>
                 <div>
-                  Score: {formatConfidencePercent(previewReport.execution?.confidence?.score || 0)} ({previewReport.execution?.confidence?.label})
+                  Score: {formatConfidencePercent(getConfidenceInfo(previewReport.execution?.confidence).score)} ({getConfidenceInfo(previewReport.execution?.confidence).label})
                 </div>
                 <div>
-                  Model: {previewReport.execution?.confidence?.associated_model}
+                  Model: {getConfidenceInfo(previewReport.execution?.confidence).model}
                 </div>
                 <div>
                   Evidence count: {previewReport.execution?.evidence?.length || 0} items

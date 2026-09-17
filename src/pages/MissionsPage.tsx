@@ -9,6 +9,15 @@ import type { InvestigationResponse } from '../types/investigation';
 import { getInvestigation, getStoredMissions, downloadReport } from '../api/investigations';
 import { formatDateTime, formatConfidencePercent } from '../utils/formatters';
 
+const getConfidenceInfo = (confidence?: any) => {
+  if (!confidence) return { score: undefined, label: 'N/A' };
+  const conf = Array.isArray(confidence) ? (confidence[0] ?? null) : confidence;
+  if (!conf) return { score: undefined, label: 'N/A' };
+  const score = conf.score !== undefined ? conf.score : conf.confidence;
+  const label = conf.label || 'N/A';
+  return { score, label };
+};
+
 interface MissionsPageProps {
   onSelectMissionForWorkspace: (mission: InvestigationResponse) => void;
 }
@@ -143,7 +152,8 @@ export const MissionsPage: React.FC<MissionsPageProps> = ({
                   filteredMissions.map((m) => {
                     const isSelected = selectedMission?.investigation_id === m.investigation_id;
                     const isCompleted = m.status === 'completed';
-                    const score = m.execution?.confidence?.score || 0;
+                    const { score } = getConfidenceInfo(m.execution?.confidence);
+                    const hasValidScore = typeof score === 'number' && Number.isFinite(score);
 
                     return (
                       <tr
@@ -167,7 +177,7 @@ export const MissionsPage: React.FC<MissionsPageProps> = ({
                         </td>
 
                         <td className="px-4 py-3 font-mono whitespace-nowrap">
-                          {isCompleted ? (
+                          {isCompleted && hasValidScore ? (
                             <span
                               className={`font-medium ${
                                 score >= 0.8
@@ -261,10 +271,10 @@ export const MissionsPage: React.FC<MissionsPageProps> = ({
                 <div className="p-2.5 bg-neutral-950 rounded border border-neutral-800">
                   <span className="text-[11px] text-neutral-500 block">Confidence</span>
                   <span className="text-sm font-semibold font-mono text-neutral-100">
-                    {formatConfidencePercent(selectedMission.execution?.confidence?.score || 0)}
+                    {formatConfidencePercent(getConfidenceInfo(selectedMission.execution?.confidence).score)}
                   </span>
                   <span className="text-[11px] text-neutral-400 block mt-0.5">
-                    {selectedMission.execution?.confidence?.label || 'N/A'}
+                    {getConfidenceInfo(selectedMission.execution?.confidence).label}
                   </span>
                 </div>
 

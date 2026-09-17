@@ -1,6 +1,50 @@
+import type { ConfidenceData } from '../types/investigation';
+
 /**
- * Utility formatters for remote-sensing metadata and values
+ * Safely normalize confidence from single object or array of confidence results
  */
+export function normalizeConfidence(
+  confidence: ConfidenceData | ConfidenceData[] | null | undefined
+): ConfidenceData | null {
+  if (!confidence) {
+    return null;
+  }
+
+  if (Array.isArray(confidence)) {
+    if (confidence.length === 0) {
+      return null;
+    }
+
+    // The backend may return confidence for multiple tasks.
+    // For the main dashboard, select the first valid confidence
+    // object rather than treating the array itself as a confidence object.
+    const valid = confidence.find(
+      item => {
+        if (!item) return false;
+        const s = item.score !== undefined ? item.score : item.confidence;
+        return typeof s === 'number' && Number.isFinite(s);
+      }
+    );
+
+    const selected = valid || confidence[0] || null;
+    if (selected && selected.score === undefined && selected.confidence !== undefined) {
+      return {
+        ...selected,
+        score: selected.confidence
+      };
+    }
+    return selected;
+  }
+
+  if (confidence && confidence.score === undefined && confidence.confidence !== undefined) {
+    return {
+      ...confidence,
+      score: confidence.confidence
+    };
+  }
+
+  return confidence;
+}
 
 export function formatBytes(bytes: number, decimals: number = 2): string {
   if (bytes === 0) return '0 Bytes';
@@ -36,8 +80,23 @@ export function formatDateTime(isoString?: string): string {
   }
 }
 
-export function formatConfidencePercent(score: number): string {
-  // If score is already 0..100 or 0..1
-  const pct = score <= 1.0 ? score * 100 : score;
+export function formatConfidencePercent(
+  score?: number | null
+): string {
+  if (
+    score === undefined ||
+    score === null ||
+    !Number.isFinite(Number(score))
+  ) {
+    return 'N/A';
+  }
+
+  const numericScore = Number(score);
+
+  const pct =
+    numericScore <= 1
+      ? numericScore * 100
+      : numericScore;
+
   return `${pct.toFixed(1)}%`;
 }

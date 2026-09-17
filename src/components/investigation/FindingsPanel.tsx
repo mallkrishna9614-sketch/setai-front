@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import type { InvestigationFinding, FindingRegion } from '../../types/investigation';
 import { downloadReport } from '../../api/investigations';
+import { formatConfidencePercent } from '../../utils/formatters';
 
 interface FindingsPanelProps {
   investigationId: string;
@@ -78,13 +79,13 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
         ) : (
           <>
             {/* Finding Summary */}
-            {finding?.summary && (
+            {(finding?.summary || message) && (
               <div className="space-y-1">
                 <span className="text-xs text-neutral-400 font-medium">
                   Summary
                 </span>
                 <p className="text-sm text-neutral-100 leading-relaxed font-sans font-medium">
-                  {finding.summary}
+                  {finding?.summary || message}
                 </p>
               </div>
             )}
@@ -176,11 +177,11 @@ export const FindingsPanel: React.FC<FindingsPanelProps> = ({
                           </span>
                         )}
                         <span>
-                          [{reg.bbox.map(n => n.toFixed(2)).join(', ')}]
+                          [{Array.isArray(reg.bbox) ? reg.bbox.map(n => typeof n === 'number' ? n.toFixed(2) : String(n)).join(', ') : ''}]
                         </span>
-                        {reg.confidence && (
+                        {reg.confidence !== undefined && reg.confidence !== null && (
                           <span className="text-neutral-300">
-                            {(reg.confidence * 100).toFixed(1)}%
+                            {formatConfidencePercent(reg.confidence)}
                           </span>
                         )}
                       </div>

@@ -78,9 +78,13 @@ export const ExecutionTrace: React.FC<ExecutionTraceProps> = ({
                   </span>
                 </div>
 
-                <p className="text-neutral-400 font-sans leading-relaxed pl-0.5">
-                  {step.details}
-                </p>
+                <div className="text-neutral-400 font-sans leading-relaxed pl-0.5">
+                  {typeof step.details === 'string'
+                    ? step.details
+                    : typeof step.details === 'object' && step.details !== null
+                    ? JSON.stringify(step.details)
+                    : String(step.details ?? '')}
+                </div>
               </div>
             ))}
           </div>

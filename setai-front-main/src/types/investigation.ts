@@ -94,6 +94,16 @@ export interface InvestigationFinding {
   cross_modal_finding?: string;
 }
 
+export interface ChangeAnalysisData {
+  comparison?: string;
+  reference_image?: string;
+  match_score?: number;
+  changed_area?: number;
+  regions?: number;
+  signal?: number;
+  reproduction_id?: string;
+}
+
 export interface ExecutionData {
   model_results: ModelResult[];
   evidence: EvidenceItem[];
@@ -101,6 +111,7 @@ export interface ExecutionData {
   conflicts: ConflictItem[];
   compatibility?: CompatibilityData;
   trace: TraceStep[];
+  change_analysis?: ChangeAnalysisData | null;
 }
 
 export interface InvestigationResponse {

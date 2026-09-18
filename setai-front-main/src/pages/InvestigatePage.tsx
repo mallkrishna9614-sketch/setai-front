@@ -16,6 +16,7 @@ import { ModelResultsList } from '../components/investigation/ModelResultsList';
 import { ConflictWarning } from '../components/investigation/ConflictWarning';
 import { ExecutionTrace } from '../components/investigation/ExecutionTrace';
 import { CompatibilityStatus } from '../components/investigation/CompatibilityStatus';
+import { ChangeAnalysisPanel } from '../components/investigation/ChangeAnalysisPanel';
 import { DEMO_SCENARIOS } from '../mocks/scenarios';
 import type { ScenarioDefinition } from '../mocks/scenarios';
 import { MOCK_IMAGES } from '../mocks/images';
@@ -268,6 +269,10 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
               tasks={investigation.tasks}
               isLoading={isLoading}
             />
+          )}
+
+          {investigation?.execution?.change_analysis && (
+            <ChangeAnalysisPanel data={investigation.execution.change_analysis} />
           )}
 
           {investigation?.execution?.conflicts && (

@@ -109,7 +109,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
       return;
     }
     if (images.length === 0) {
-      setError('Please upload a satellite raster image (.tif / .tiff) to investigate.');
+      setError('Please upload a satellite image (GeoTIFF, PNG, or JPEG) to investigate.');
       return;
     }
 
@@ -119,7 +119,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
         i => i.image_id.startsWith('img_mock_') || i.image_id.startsWith('img_s2_')
       );
       if (mockImages.length > 0) {
-        setError('Please upload a satellite raster image (.tif / .tiff) to investigate with the live backend.');
+        setError('Please upload a satellite image (GeoTIFF, PNG, or JPEG) to investigate with the live backend.');
         return;
       }
     }

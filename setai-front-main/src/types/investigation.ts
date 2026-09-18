@@ -99,7 +99,7 @@ export interface ChangeAnalysisData {
   reference_image?: string;
   match_score?: number;
   changed_area?: number;
-  regions?: number;
+  regions?: number | FindingRegion[];
   signal?: number;
   reproduction_id?: string;
 }

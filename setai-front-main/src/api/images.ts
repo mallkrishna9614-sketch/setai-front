@@ -45,10 +45,11 @@ export async function uploadImage(file: File, modality: Modality): Promise<Image
     return { image: mockImage };
   }
 
-  // TIFF file validation: accept .tif and .tiff
+  // Satellite image validation: GeoTIFF/TIFF, PNG, and JPEG are supported.
   const filename = file.name.toLowerCase();
-  if (!filename.endsWith('.tif') && !filename.endsWith('.tiff')) {
-    throw new Error('Only GeoTIFF files (.tif, .tiff) are accepted.');
+  const supported = ['.tif', '.tiff', '.png', '.jpg', '.jpeg'];
+  if (!supported.some(ext => filename.endsWith(ext))) {
+    throw new Error('Supported satellite images: GeoTIFF/TIFF, PNG, or JPEG.');
   }
 
   // Live FastAPI backend: POST /api/v1/images/upload

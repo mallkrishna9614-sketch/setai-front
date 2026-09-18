@@ -41,6 +41,15 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [investigation, setInvestigation] = useState<InvestigationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (investigation?.status === 'completed') {
+      window.setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [investigation?.investigation_id, investigation?.status]);
 
   const applyScenario = (sc: ScenarioDefinition) => {
     setQuery(sc.query);
@@ -265,7 +274,9 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
           />
 
           {investigation?.execution?.change_analysis && (
-            <ChangeAnalysisPanel data={investigation.execution.change_analysis} />
+            <div ref={resultsRef} className="scroll-mt-6">
+              <ChangeAnalysisPanel data={investigation.execution.change_analysis} />
+            </div>
           )}
 
           {investigation?.finding && (

@@ -55,7 +55,10 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
-export function formatResolution(resX: number, resY: number): string {
+export function formatResolution(resX: number | null, resY: number | null): string {
+  if (resX === null || resY === null || !Number.isFinite(resX) || !Number.isFinite(resY)) {
+    return 'GSD N/A';
+  }
   if (Math.abs(resX - resY) < 0.0001) {
     return `${resX}m GSD`;
   }

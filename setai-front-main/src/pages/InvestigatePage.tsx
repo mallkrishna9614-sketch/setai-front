@@ -264,6 +264,19 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             isLoading={isLoading}
           />
 
+          {investigation?.execution?.change_analysis && (
+            <ChangeAnalysisPanel data={investigation.execution.change_analysis} />
+          )}
+
+          {investigation?.finding && (
+            <FindingsPanel
+              investigationId={investigation.investigation_id}
+              finding={investigation.finding}
+              status={investigation.status}
+              message={investigation.message}
+            />
+          )}
+
           {investigation?.tasks && investigation.tasks.length > 0 && (
             <InvestigationPlan
               tasks={investigation.tasks}
@@ -271,22 +284,9 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             />
           )}
 
-          {investigation?.execution?.change_analysis && (
-            <ChangeAnalysisPanel data={investigation.execution.change_analysis} />
-          )}
-
           {investigation?.execution?.conflicts && (
             <ConflictWarning
               conflicts={investigation.execution.conflicts}
-            />
-          )}
-
-          {investigation && (
-            <FindingsPanel
-              investigationId={investigation.investigation_id}
-              finding={investigation.finding}
-              status={investigation.status}
-              message={investigation.message}
             />
           )}
 

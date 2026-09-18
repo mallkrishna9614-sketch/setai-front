@@ -106,6 +106,30 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     setIsDragging(false);
   };
 
+  const isGeoTIFF = (image: ImageMetadata) => /\\.(tif|tiff)$/i.test(image.filename);
+
+  const renderImage = (image: ImageMetadata, className?: string) => {
+    if (!isGeoTIFF(image)) {
+      const src = image.preview_url || (image.file ? URL.createObjectURL(image.file) : '');
+      if (!src) {
+        return (
+          <div className="text-xs text-neutral-500 text-center p-4">
+            Preview unavailable for this image.
+          </div>
+        );
+      }
+      return (
+        <img
+          src={src}
+          alt={image.filename}
+          className={className || 'max-w-full max-h-full object-contain'}
+          draggable={false}
+        />
+      );
+    }
+    return <GeoTIFFCanvas image={image} className={className} />;
+  };
+
   const renderOverlays = (keyPrefix: string) => {
     if (!showOverlays || !regions.length) return null;
     return regions.map((reg, rIdx) => {
@@ -287,7 +311,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               No imagery loaded
             </h4>
             <p className="text-xs text-neutral-500 leading-relaxed">
-              Upload a satellite raster (.tif / GeoTIFF) or load a sample preset to display spatial data.
+              Upload a satellite image (GeoTIFF, PNG, or JPEG) or load a sample preset to display spatial data.
             </p>
           </div>
         ) : (
@@ -307,7 +331,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   onMouseMove={(e) => handleImagePanelMouseMove(e, images[0])}
                   className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
                 >
-                  <GeoTIFFCanvas image={images[0]} />
+                  {renderImage(images[0])}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
                     <span className="font-semibold text-neutral-100">{images[0].slot_label || 'Image 1'}</span>
                     <span className="text-neutral-500">·</span>
@@ -323,7 +347,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   onMouseMove={(e) => handleImagePanelMouseMove(e, images[1])}
                   className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
                 >
-                  <GeoTIFFCanvas image={images[1]} />
+                  {renderImage(images[1])}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
                     <span className="font-semibold text-neutral-100">{images[1].slot_label || 'Image 2'}</span>
                     <span className="text-neutral-500">·</span>
@@ -342,7 +366,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               >
                 {/* Image 2 (Underneath) */}
                 <div className="absolute inset-0">
-                  <GeoTIFFCanvas image={images[1]} className="w-full h-full" />
+                  {renderImage(images[1], 'w-full h-full object-contain')}
                 </div>
                 <div className="absolute top-3 right-3 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10">
                   {images[1].slot_label || 'Image 2'} ({images[1].modality})
@@ -354,7 +378,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   style={{ width: `${swipePosition}%` }}
                 >
                   <div className="w-[520px] h-[520px] max-w-none">
-                    <GeoTIFFCanvas image={images[0]} className="w-[520px] h-[520px]" />
+                    {renderImage(images[0], 'w-[520px] h-[520px] object-contain')}
                   </div>
                   <div className="absolute top-3 left-3 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10">
                     {images[0].slot_label || 'Image 1'} ({images[0].modality})
@@ -395,7 +419,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 onMouseMove={(e) => handleImagePanelMouseMove(e, currentImage)}
                 className="relative w-[520px] h-[520px] max-w-full max-h-full aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
               >
-                <GeoTIFFCanvas image={currentImage} />
+                {renderImage(currentImage)}
                 <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
                   <span className="font-semibold text-neutral-100">{currentImage.slot_label || 'Image'}</span>
                   <span className="text-neutral-500">·</span>

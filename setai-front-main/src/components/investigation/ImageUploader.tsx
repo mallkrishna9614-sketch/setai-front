@@ -231,7 +231,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".tif,.tiff"
+              accept=".tif,.tiff,.png,.jpg,.jpeg"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -239,12 +239,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-neutral-300" />
-                  <span>Processing raster metadata...</span>
+                  <span>Processing image metadata...</span>
                 </>
               ) : (
                 <>
                   <UploadCloud className="w-4 h-4 text-neutral-400" />
-                  <span>Drop GeoTIFF / TIFF file or click to browse</span>
+                  <span>Drop GeoTIFF / TIFF / PNG / JPEG file or click to browse</span>
                 </>
               )}
             </div>

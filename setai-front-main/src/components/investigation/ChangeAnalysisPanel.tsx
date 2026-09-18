@@ -14,6 +14,8 @@ function formatNumber(value?: number, digits = 2): string {
 export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }) => {
   if (!data) return null;
 
+  const regionCount = Array.isArray(data.regions) ? data.regions.length : data.regions;
+
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5 space-y-4">
       <div className="pb-3 border-b border-neutral-800">
@@ -30,7 +32,7 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
         </div>
         <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
           <div className="text-[11px] text-neutral-500">Regions</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-100">{data.regions ?? '—'}</div>
+          <div className="mt-1 text-sm font-semibold text-neutral-100">{regionCount ?? '—'}</div>
         </div>
         <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
           <div className="text-[11px] text-neutral-500">Changed area</div>

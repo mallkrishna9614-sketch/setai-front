@@ -119,7 +119,7 @@ export async function checkBackendHealth(): Promise<{ ok: boolean; message: stri
     const res = await fetch(`${baseUrl}/models/`, {
       method: 'GET',
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(15000)
     });
     const latencyMs = Math.round(performance.now() - startTime);
 

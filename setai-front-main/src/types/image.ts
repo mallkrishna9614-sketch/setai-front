@@ -8,10 +8,10 @@ export interface ImageMetadata {
   height: number;
   bands: number;
   dtype: string;
-  crs: string;
-  resolution_x: number;
-  resolution_y: number;
-  bounds: [number, number, number, number]; // [min_x, min_y, max_x, max_y] (e.g. lon/lat or projected)
+  crs: string | null;
+  resolution_x: number | null;
+  resolution_y: number | null;
+  bounds: [number, number, number, number] | []; // [min_x, min_y, max_x, max_y] (e.g. lon/lat or projected)
   transform: number[];
   file_size_bytes: number;
   preview_url?: string;

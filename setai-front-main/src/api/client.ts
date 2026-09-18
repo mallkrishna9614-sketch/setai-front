@@ -18,6 +18,12 @@ export const STORAGE_KEY_BASE_URL = 'satquery_api_base_url';
 export const STORAGE_KEY_MOCK_MODE = 'satquery_use_mock_api';
 
 export function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const runtimeUrl = window.localStorage.getItem(STORAGE_KEY_BASE_URL);
+    if (runtimeUrl) {
+      return runtimeUrl.replace(/\/+$/, '');
+    }
+  }
   return ENV_BASE_URL.replace(/\/+$/, '');
 }
 
@@ -26,6 +32,12 @@ export function setApiBaseUrl(url: string): void {
 }
 
 export function isMockMode(): boolean {
+  if (typeof window !== 'undefined') {
+    const runtimeMode = window.localStorage.getItem(STORAGE_KEY_MOCK_MODE);
+    if (runtimeMode !== null) {
+      return runtimeMode === 'true';
+    }
+  }
   return ENV_MOCK_MODE;
 }
 

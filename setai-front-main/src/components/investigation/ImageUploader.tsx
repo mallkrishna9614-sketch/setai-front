@@ -48,10 +48,14 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     const img1 = images[0];
     const img2 = images[1];
 
-    if (img1.crs !== img2.crs) {
+    if (img1.crs !== img2.crs && img1.crs !== null && img2.crs !== null) {
       return `CRS mismatch: ${img1.crs} vs ${img2.crs}. Automated reprojection required.`;
     }
-    if (Math.abs(img1.resolution_x - img2.resolution_x) > 20) {
+    if (
+      img1.resolution_x !== null &&
+      img2.resolution_x !== null &&
+      Math.abs(img1.resolution_x - img2.resolution_x) > 20
+    ) {
       return `Resolution discrepancy: ${img1.resolution_x}m vs ${img2.resolution_x}m GSD.`;
     }
     return null;

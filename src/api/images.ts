@@ -38,7 +38,8 @@ export async function uploadImage(file: File, modality: Modality): Promise<Image
       bounds: [72.82, 18.92, 72.95, 19.05],
       transform: [resolution, 0.0, 271200.0, 0.0, -resolution, 2108000.0],
       file_size_bytes: file.size,
-      preview_url: previewUrl
+      preview_url: previewUrl,
+      file
     };
 
     return { image: mockImage };
@@ -74,9 +75,12 @@ export async function uploadImage(file: File, modality: Modality): Promise<Image
 
   console.log('SatQuery AI - Upload Success:', response);
 
-  // Attach local blob preview for UI rendering if none provided by backend
-  if (response.image && !response.image.preview_url) {
-    response.image.preview_url = URL.createObjectURL(file);
+  // Attach local blob preview and file reference for client-side GeoTIFF rendering
+  if (response.image) {
+    response.image.file = file;
+    if (!response.image.preview_url) {
+      response.image.preview_url = URL.createObjectURL(file);
+    }
   }
 
   return response;

@@ -41,12 +41,6 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   const [investigation, setInvestigation] = useState<InvestigationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (selectedScenario) {
-      applyScenario(selectedScenario);
-    }
-  }, [selectedScenario]);
-
   const applyScenario = (sc: ScenarioDefinition) => {
     setQuery(sc.query);
     setImages(sc.images);
@@ -57,6 +51,12 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
     }
   };
 
+  React.useEffect(() => {
+    if (selectedScenario) {
+      applyScenario(selectedScenario);
+    }
+  }, [selectedScenario]);
+
   const handleAddImage = (image: ImageMetadata) => {
     if (images.length >= 2) return;
     setImages(prev => [...prev, image]);
@@ -64,7 +64,13 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   };
 
   const handleRemoveImage = (imageId: string) => {
-    setImages(prev => prev.filter(img => img.image_id !== imageId));
+    setImages(prev => {
+      const target = prev.find(img => img.image_id === imageId);
+      if (target?.preview_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(target.preview_url);
+      }
+      return prev.filter(img => img.image_id !== imageId);
+    });
   };
 
   const handleUpdateModality = (imageId: string, modality: Modality) => {
@@ -152,6 +158,11 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   };
 
   const handleResetWorkspace = () => {
+    images.forEach(img => {
+      if (img.preview_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(img.preview_url);
+      }
+    });
     setQuery('Describe the land-cover and major objects visible in this image.');
     setImages(isMockMode() ? [MOCK_IMAGES.img_s2_optical_t1] : []);
     setInvestigation(null);

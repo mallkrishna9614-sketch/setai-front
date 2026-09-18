@@ -16,6 +16,7 @@ export interface ImageMetadata {
   file_size_bytes: number;
   preview_url?: string;
   slot_label?: 'Image 1' | 'Image 2';
+  file?: File;
 }
 
 export interface ImageUploadResponse {

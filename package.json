@@ -12,6 +12,7 @@
   "dependencies": {
     "autoprefixer": "^10.6.0",
     "clsx": "^2.1.1",
+    "geotiff": "^3.0.5",
     "lucide-react": "^1.46.0",
     "postcss": "^8.5.28",
     "react": "^19.2.8",

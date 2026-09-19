@@ -17,6 +17,11 @@ import { ConflictWarning } from '../components/investigation/ConflictWarning';
 import { ExecutionTrace } from '../components/investigation/ExecutionTrace';
 import { CompatibilityStatus } from '../components/investigation/CompatibilityStatus';
 import { ChangeAnalysisPanel } from '../components/investigation/ChangeAnalysisPanel';
+import {
+  SpecialistResultPanel,
+  extractSpecialistRegions,
+  deriveSpecialistChangeAnalysis
+} from '../components/investigation/SpecialistResultPanel';
 import { DEMO_SCENARIOS } from '../mocks/scenarios';
 import type { ScenarioDefinition } from '../mocks/scenarios';
 import { MOCK_IMAGES } from '../mocks/images';
@@ -269,7 +274,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
         <div className="lg:col-span-7 space-y-6">
           <ImageViewer
             images={images}
-            regions={investigation?.finding?.regions}
+            regions={displayRegions}
             isLoading={isLoading}
           />
 

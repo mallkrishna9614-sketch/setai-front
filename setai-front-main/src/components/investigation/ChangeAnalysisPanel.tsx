@@ -85,7 +85,7 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
         </div>
         <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
           <span className="text-neutral-500 block mb-1">Signal</span>
-          <span className="text-neutral-200 font-mono">{formatNumber(data.signal, 2)}</span>
+          <span className="text-neutral-200 font-mono">{typeof data.signal === 'number' ? `${formatNumber(data.signal <= 1 ? data.signal * 100 : data.signal, 2)}%` : '—'}</span>
         </div>
       </div>
 

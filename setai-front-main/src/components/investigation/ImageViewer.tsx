@@ -124,7 +124,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const mlBase = (
       import.meta.env.VITE_ML_ARTIFACT_BASE_URL ||
       import.meta.env.VITE_ML_BASE_URL ||
-      ''
+      'https://epa-writings-duo-acting.trycloudflare.com'
     ).replace(/\/+$/, '');
 
     if (mlBase) {

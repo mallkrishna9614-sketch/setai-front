@@ -1,6 +1,7 @@
 import React from 'react';
 import type {
   ChangeAnalysisData,
+  ChangeRegionFinding,
   FindingRegion,
   ModelResult
 } from '../../types/investigation';
@@ -23,6 +24,9 @@ interface NormalizedModelOutput {
   changedAreaPercent?: number;
   regions?: FindingRegion[];
   evidence?: Array<Record<string, unknown>>;
+  regionFindings?: ChangeRegionFinding[];
+  whatChanged?: string;
+  why?: string;
   raw?: unknown;
 }
 
@@ -102,6 +106,47 @@ function normalizeRegions(value: unknown): FindingRegion[] {
     .filter((item): item is FindingRegion => item !== null);
 }
 
+
+
+function textValue(record: Record<string, unknown> | null, ...keys: string[]): string | undefined {
+  if (!record) return undefined;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function normalizeRegionFindings(value: unknown): ChangeRegionFinding[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((item, index) => {
+    const record = asRecord(item) || {};
+    const rawBbox = record.bbox;
+    let bbox: [number, number, number, number] | undefined;
+
+    if (Array.isArray(rawBbox) && rawBbox.length === 4) {
+      const nums = rawBbox.map(finiteNumber);
+      if (nums.every((n): n is number => n !== undefined)) {
+        bbox = [nums[0], nums[1], nums[2], nums[3]];
+      }
+    }
+
+    const confidence = finiteNumber(record.confidence ?? record.score);
+
+    return {
+      id: String(record.id ?? record.region_id ?? index + 1),
+      title: textValue(record, 'title', 'name', 'region_name') || `Region ${index + 1}`,
+      region: textValue(record, 'region', 'location', 'position'),
+      change: textValue(record, 'change', 'description', 'finding', 'summary', 'semantic_description'),
+      type: textValue(record, 'type', 'change_type', 'class', 'label'),
+      evidence: textValue(record, 'evidence', 'evidence_description'),
+      confidence,
+      bbox
+    };
+  }).filter(item => Boolean(item.change || item.type || item.evidence || item.region));
+}
+
 function unwrapOutput(model: ModelResult): Record<string, unknown> | null {
   const direct = asRecord(model.output);
   if (!direct) {
@@ -160,6 +205,28 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     output.regions ?? output.changed_regions ?? output.detections
   );
 
+  const regionFindings = normalizeRegionFindings(
+    output.region_findings ??
+    output.region_analysis ??
+    output.semantic_findings ??
+    output.change_findings ??
+    output.findings ??
+    output.descriptions
+  );
+
+  const whatChanged =
+    textValue(output, 'what_changed', 'change_summary', 'summary', 'answer', 'description') ??
+    (changeType ? `Detected change classified as ${changeType}.` : undefined);
+
+  const why = textValue(
+    output,
+    'why',
+    'explanation',
+    'reason',
+    'analysis',
+    'rationale'
+  );
+
   const evidence = Array.isArray(output.evidence)
     ? output.evidence.filter(asRecord) as Array<Record<string, unknown>>
     : undefined;
@@ -177,6 +244,9 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     changedAreaPercent,
     regions,
     evidence,
+    regionFindings,
+    whatChanged,
+    why,
     raw: output
   };
 }
@@ -228,7 +298,12 @@ export function deriveSpecialistChangeAnalysis(
       match_score: matchScore,
       changed_area: normalized.changedAreaPercent,
       regions: normalized.regions,
-      signal
+      signal,
+      change_detected: normalized.changeDetected,
+      change_type: normalized.changeType,
+      what_changed: normalized.whatChanged,
+      why: normalized.why,
+      region_findings: normalized.regionFindings
     };
   }
 

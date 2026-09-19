@@ -180,13 +180,31 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   const specialistRegions = investigation
     ? extractSpecialistRegions(modelResults)
     : [];
-  const displayRegions = investigation?.finding?.regions?.length
-    ? investigation.finding.regions
-    : specialistRegions;
   const derivedChangeAnalysis = investigation
     ? deriveSpecialistChangeAnalysis(modelResults)
     : null;
   const changeAnalysis = investigation?.execution?.change_analysis || derivedChangeAnalysis;
+
+  // Promote ML semantic region findings with bounding boxes into the image viewer.
+  // This keeps the current image as the base while drawing the actual detected
+  // change locations on top, even when the ML service does not expose its PNG artifact.
+  const changeRegionOverlays = (changeAnalysis?.region_findings || [])
+    .map((region, index) => {
+      if (!region.bbox || region.bbox.length !== 4) return null;
+      return {
+        id: String(region.id ?? `change-region-${index + 1}`),
+        label: String(region.change || region.type || region.title || `Change ${index + 1}`),
+        bbox: region.bbox,
+        confidence: region.confidence
+      };
+    })
+    .filter((region): region is NonNullable<typeof region> => region !== null);
+
+  const displayRegions = investigation?.finding?.regions?.length
+    ? investigation.finding.regions
+    : specialistRegions.length
+      ? specialistRegions
+      : changeRegionOverlays;
   const nonChangeModelResults = modelResults.filter(
     model => !String(model.task || '').toLowerCase().includes('change')
   );

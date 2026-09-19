@@ -71,7 +71,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         keys.includes(keyHint) ||
         /base64|image|visual|overlay|mask|change|reference|historical|before|current/i.test(keyHint)
       )) {
-        return \`data:image/jpeg;base64,\${text.replace(/\s/g, '')}\`;
+        return `data:image/jpeg;base64,${text.replace(/\s/g, '')}`;
       }
       return undefined;
     };
@@ -238,7 +238,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     setIsDragging(false);
   };
 
-  const isGeoTIFF = (image: ImageMetadata) => /\\.(tif|tiff)$/i.test(image.filename);
+  const isGeoTIFF = (image: ImageMetadata) => /\.(tif|tiff)$/i.test(image.filename);
 
   const renderImage = (image: ImageMetadata, className?: string) => {
     if (!isGeoTIFF(image)) {

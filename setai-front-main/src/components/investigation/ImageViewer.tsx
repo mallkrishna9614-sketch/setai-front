@@ -13,6 +13,10 @@ import { GeoTIFFCanvas } from './GeoTIFFCanvas';
 import { clearGeoTIFFCache } from '../../utils/geotiffRenderer';
 import { getApiBaseUrl } from '../../api/client';
 
+// Remote SatQuery ML artifact host. The ML service returns artifact filenames
+// such as train_11.png; resolve those against the ML service instead of Vercel.
+const ML_ARTIFACT_BASE_URL = (import.meta.env.VITE_ML_BASE_URL || 'https://epa-writings-duo-acting.trycloudflare.com').replace(/\/+$/, '');
+
 interface ImageViewerProps {
   images: ImageMetadata[];
   regions?: FindingRegion[];

@@ -56,33 +56,52 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const findArtifact = (value: unknown, keys: string[]): string | undefined => {
     const seen = new Set<object>();
-    const queue: unknown[] = [value];
+    const queue: Array<{ value: unknown; keyHint?: string }> = [{ value }];
+
+    const asImageSource = (candidate: unknown, keyHint = ''): string | undefined => {
+      if (typeof candidate !== 'string') return undefined;
+      const text = candidate.trim();
+      if (!text) return undefined;
+      if (/^data:image\\//i.test(text) || /^blob:/i.test(text) || /^https?:\\/\\//i.test(text) || /^\\//.test(text)) {
+        return text;
+      }
+      const looksLikeBase64 = /^[A-Za-z0-9+/=\\s_-]+$/.test(text) && text.length > 200;
+      if (looksLikeBase64 && (
+        keys.includes(keyHint) ||
+        /base64|image|visual|overlay|mask|change|reference|historical|before|current/i.test(keyHint)
+      )) {
+        return `data:image/jpeg;base64,${text.replace(/\\s/g, '')}`;
+      }
+      return undefined;
+    };
 
     while (queue.length) {
-      const current = queue.shift();
+      const { value: current, keyHint } = queue.shift()!;
       if (!current || typeof current !== 'object') continue;
       if (seen.has(current as object)) continue;
       seen.add(current as object);
 
       if (Array.isArray(current)) {
-        queue.push(...current);
+        current.forEach(item => queue.push({ value: item, keyHint }));
         continue;
       }
 
       const record = current as Record<string, unknown>;
+
       for (const key of keys) {
-        const candidate = record[key];
-        if (typeof candidate === 'string' && candidate.trim()) {
-          const value = candidate.trim();
-          if (value.startsWith('data:image/')) return value;
-          if (/^(blob:|https?:\/\/|\/)/i.test(value)) return value;
-          if (/^[A-Za-z0-9+/=\\s]+$/.test(value) && value.length > 200) {
-            return `data:image/png;base64,${value.replace(/\\s/g, '')}`;
-          }
-        }
+        const candidate = asImageSource(record[key], key);
+        if (candidate) return candidate;
       }
 
-      queue.push(...Object.values(record));
+      for (const [key, candidate] of Object.entries(record)) {
+        const source = asImageSource(candidate, key);
+        if (source && /base64|image|visual|overlay|mask|change|reference|historical|before|current/i.test(key)) {
+          return source;
+        }
+        if (candidate && typeof candidate === 'object') {
+          queue.push({ value: candidate, keyHint: key });
+        }
+      }
     }
 
     return undefined;

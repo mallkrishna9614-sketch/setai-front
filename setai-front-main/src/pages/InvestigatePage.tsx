@@ -195,6 +195,9 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
     ? deriveSpecialistChangeAnalysis(modelResults)
     : null;
   const changeAnalysis = investigation?.execution?.change_analysis || derivedChangeAnalysis;
+  const nonChangeModelResults = modelResults.filter(
+    model => !String(model.task || '').toLowerCase().includes('change')
+  );
 
   return (
     <div className="space-y-6 pb-12">
@@ -284,25 +287,21 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
           )}
         </div>
 
-        {/* Right Column (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Image preview remains beside the investigation controls. */}
+        <div className="lg:col-span-7 space-y-5">
           <ImageViewer
             images={images}
             regions={displayRegions}
             isLoading={isLoading}
           />
+        </div>
+      </div>
 
-          {changeAnalysis && (
-            <div ref={resultsRef} className="scroll-mt-6">
-              <ChangeAnalysisPanel data={changeAnalysis} />
-            </div>
-          )}
+      {investigation && (
+        <div ref={resultsRef} className="scroll-mt-6 space-y-5">
+          {changeAnalysis && <ChangeAnalysisPanel data={changeAnalysis} />}
 
-          {modelResults.length > 0 && (
-            <SpecialistResultPanel models={modelResults} />
-          )}
-
-          {investigation?.finding && (
+          {investigation.finding && (
             <FindingsPanel
               investigationId={investigation.investigation_id}
               finding={investigation.finding}
@@ -311,39 +310,34 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             />
           )}
 
-          {investigation?.tasks && investigation.tasks.length > 0 && (
-            <InvestigationPlan
-              tasks={investigation.tasks}
-              isLoading={isLoading}
-            />
+          {nonChangeModelResults.length > 0 && (
+            <SpecialistResultPanel models={nonChangeModelResults} />
           )}
 
-          {investigation?.execution?.conflicts && (
-            <ConflictWarning
-              conflicts={investigation.execution.conflicts}
-            />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            {investigation.tasks && investigation.tasks.length > 0 && (
+              <InvestigationPlan tasks={investigation.tasks} isLoading={isLoading} />
+            )}
+
+            {investigation.execution?.evidence && (
+              <EvidencePanel evidence={investigation.execution.evidence} />
+            )}
+          </div>
+
+          {investigation.execution?.conflicts && investigation.execution.conflicts.length > 0 && (
+            <ConflictWarning conflicts={investigation.execution.conflicts} />
           )}
 
-          {investigation?.execution?.evidence && (
-            <EvidencePanel
-              evidence={investigation.execution.evidence}
-            />
+          {investigation.execution?.trace && (
+            <ExecutionTrace trace={investigation.execution.trace} defaultExpanded={false} />
           )}
 
-          {investigation?.execution?.model_results && (
-            <ModelResultsList
-              models={investigation.execution.model_results}
-            />
-          )}
-
-          {investigation?.execution?.trace && (
-            <ExecutionTrace
-              trace={investigation.execution.trace}
-              defaultExpanded={false}
-            />
+          {investigation.execution?.model_results && investigation.execution.model_results.length > 0 && (
+            <ModelResultsList models={investigation.execution.model_results} />
           )}
         </div>
-      </div>
+      )}
+
     </div>
   );
 };

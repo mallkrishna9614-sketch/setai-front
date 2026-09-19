@@ -92,8 +92,16 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     if (!value) return undefined;
     const trimmed = value.trim();
     if (!trimmed) return undefined;
-    if (/^(data:|blob:|https?:\/\/)/i.test(trimmed)) return trimmed;
-    if (trimmed.startsWith('//')) return window.location.protocol + trimmed;
+    if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
+    // Remote ML image artifacts are loaded through the FastAPI proxy so
+    // browser access does not depend on ML-provider CORS or tunnel behavior.
+    if (/^https?:\/\//i.test(trimmed)) {
+      return getApiBaseUrl() + '/ml-artifacts/proxy?url=' + encodeURIComponent(trimmed);
+    }
+    if (trimmed.startsWith('//')) {
+      const absolute = window.location.protocol + trimmed;
+      return getApiBaseUrl() + '/ml-artifacts/proxy?url=' + encodeURIComponent(absolute);
+    }
     if (trimmed.startsWith('/')) return getApiBaseUrl() + trimmed;
     return getApiBaseUrl() + '/' + trimmed;
   };

@@ -147,8 +147,26 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   // The remote temporal model performs the historical lookup internally.
   // Surface its reference image and annotated/current artifact even though
   // the user uploaded only one image.
+  const isDirectArtifactPointer = (value: unknown): value is string => {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    return /^data:image\\//i.test(trimmed) ||
+      /^blob:/i.test(trimmed) ||
+      /^https?:\\/\\//i.test(trimmed) ||
+      trimmed.startsWith('/');
+  };
+
   const remoteChangeArtifact =
-    changeArtifact ||
+    (isDirectArtifactPointer(changeArtifact) ? changeArtifact : undefined) ||
+    normalizeEmbeddedArtifact(findArtifact(modelOutput, [
+      'change_visualization_base64',
+      'overlay_base64',
+      'annotated_image_base64',
+      'visualization_base64',
+      'image_base64',
+      'image_data_url',
+      'data_url'
+    ])) ||
     findArtifact(modelOutput, [
       'change_visualization_url',
       'change_visualization',
@@ -161,11 +179,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       'visualization_url',
       'visualization',
       'artifact_url',
-      'image_url',
-      'visualization_base64',
-      'overlay_base64',
-      'annotated_image_base64',
-      'change_visualization_base64'
+      'image_url'
     ]);
 
   const normalizeEmbeddedArtifact = (value: unknown): string | undefined => {
@@ -182,7 +196,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   };
 
   const remoteReferenceArtifact =
-    (typeof referenceImageUrl === 'string' ? referenceImageUrl : findArtifact(referenceImageUrl, ['url','src','href','path','uri','image_url','data_url'])) ||
+    (isDirectArtifactPointer(referenceImageUrl) ? referenceImageUrl : undefined) ||
     normalizeEmbeddedArtifact(findArtifact(modelOutput, [
       'reference_base64',
       'reference_image_base64',
@@ -192,6 +206,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       'image_data_url',
       'data_url'
     ])) ||
+    findArtifact(referenceImageUrl, ['url','src','href','path','uri','image_url','data_url']) ||
     findArtifact(modelOutput, [
       'reference_image_url',
       'reference_image',
@@ -200,16 +215,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       'before_image',
       'historical_image_url',
       'historical_image',
-      'reference_base64',
-      'reference_image_base64',
-      'before_image_base64',
-      'historical_image_base64',
       'historical_base64',
       'before_image',
-      'before_base64',
-      'image_base64',
-      'image_data_url',
-      'data_url'
+      'before_base64'
     ]);
 
   const resolvedChangeArtifact = resolveArtifactUrl(remoteChangeArtifact);

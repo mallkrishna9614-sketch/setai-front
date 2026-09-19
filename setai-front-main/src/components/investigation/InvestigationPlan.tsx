@@ -4,11 +4,13 @@ import type { InvestigationTask } from '../../types/investigation';
 interface InvestigationPlanProps {
   tasks: InvestigationTask[];
   isLoading?: boolean;
+  executionComplete?: boolean;
 }
 
 export const InvestigationPlan: React.FC<InvestigationPlanProps> = ({
   tasks,
-  isLoading = false
+  isLoading = false,
+  executionComplete = false
 }) => {
   if (!tasks || tasks.length === 0) {
     return null;
@@ -32,6 +34,9 @@ export const InvestigationPlan: React.FC<InvestigationPlanProps> = ({
   };
 
   const getStatusBadge = (status?: string) => {
+    if (executionComplete && status !== 'failed') {
+      return <span className="text-[11px] text-status-success font-medium">Completed</span>;
+    }
     if (isLoading && status !== 'completed') {
       return <span className="text-[11px] text-neutral-400">Running...</span>;
     }
@@ -48,7 +53,7 @@ export const InvestigationPlan: React.FC<InvestigationPlanProps> = ({
   };
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-5 space-y-4">
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-medium text-neutral-300">
@@ -74,7 +79,7 @@ export const InvestigationPlan: React.FC<InvestigationPlanProps> = ({
               )}
 
               {/* Task Item */}
-              <div className="bg-neutral-950 border border-neutral-800 rounded p-3.5 space-y-1.5">
+              <div className="bg-neutral-950 border border-neutral-800 rounded p-3 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-neutral-200">

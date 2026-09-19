@@ -437,7 +437,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const renderChangeFallback = () => {
     if (changeArtifactReady || !viewerRegions.length) return null;
     return (
-      <div className="absolute inset-0 pointer-events-none z-15">
+      <div className="absolute inset-0 pointer-events-none z-20">
         {viewerRegions.map((reg, index) => {
           const values = reg.bbox.map(Number);
           const maxValue = Math.max(...values.map(v => Math.abs(v)));
@@ -446,7 +446,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           return (
             <div
               key={'change-fallback-' + (reg.id || index)}
-              className="absolute rounded border-2 border-status-error bg-status-error/30 shadow-[0_0_12px_rgba(239,68,68,0.45)]"
+              className="absolute rounded border-2 border-red-400 bg-red-500/30 shadow-[0_0_14px_rgba(239,68,68,0.55)] z-30"
               style={{
                 top: (ymin * 100) + '%',
                 left: (xmin * 100) + '%',
@@ -454,7 +454,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 height: Math.max(1, (ymax - ymin) * 100) + '%'
               }}
             >
-              <span className="absolute -top-5 left-0 rounded bg-status-error px-1.5 py-0.5 text-[9px] font-bold text-white whitespace-nowrap">
+              <span className="absolute -top-5 left-0 rounded bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white whitespace-nowrap z-40">
                 AI CHANGE
               </span>
             </div>

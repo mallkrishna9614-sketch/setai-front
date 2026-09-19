@@ -118,6 +118,10 @@ export interface ChangeAnalysisData {
   what_changed?: string;
   why?: string;
   region_findings?: ChangeRegionFinding[];
+  /** Optional model-generated visual artifacts. */
+  change_visualization_url?: string;
+  change_mask_url?: string;
+  sar_mask_url?: string;
 }
 
 export interface ExecutionData {

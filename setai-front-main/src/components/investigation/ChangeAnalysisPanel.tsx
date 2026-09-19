@@ -99,38 +99,6 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
-          <div className="text-[11px] text-neutral-500">Comparison</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-100">{data.comparison || '—'}</div>
-        </div>
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
-          <div className="text-[11px] text-neutral-500">Regions</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-100">{regionCount ?? '—'}</div>
-        </div>
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
-          <div className="text-[11px] text-neutral-500">Changed area</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-100">
-            {typeof data.changed_area === 'number' ? `${formatNumber(data.changed_area)}%` : '—'}
-          </div>
-        </div>
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
-          <div className="text-[11px] text-neutral-500">Match score</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-100">{formatNumber(data.match_score, 4)}</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
-          <span className="text-neutral-500 block mb-1">Reference / before</span>
-          <span className="text-neutral-200 font-mono">{data.reference_image || 'Remote reference'}</span>
-        </div>
-        <div className="rounded border border-neutral-800 bg-neutral-950 p-3">
-          <span className="text-neutral-500 block mb-1">Signal</span>
-          <span className="text-neutral-200 font-mono">{typeof data.signal === 'number' ? `${formatNumber(data.signal <= 1 ? data.signal * 100 : data.signal, 2)}%` : '—'}</span>
-        </div>
-      </div>
-
       {data.region_findings && data.region_findings.length > 0 && (
         <div className="space-y-3">
           <div>

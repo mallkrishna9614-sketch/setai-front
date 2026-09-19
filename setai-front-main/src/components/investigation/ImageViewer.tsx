@@ -492,6 +492,13 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     alt="Historical satellite reference used by the temporal change model"
                     className="w-full h-full object-contain bg-black"
                     loading="eager"
+                    onError={(event) => {
+                      console.warn('SatQuery AI - historical artifact failed:', resolvedReferenceArtifact);
+                      const fallback = images[0];
+                      const fallbackSrc = fallback?.preview_url || (fallback?.file ? URL.createObjectURL(fallback.file) : '');
+                      if (fallbackSrc) event.currentTarget.src = fallbackSrc;
+                      else event.currentTarget.style.display = 'none';
+                    }}
                   />
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-10 shadow-md">
                     <span className="font-semibold">Historical reference</span>

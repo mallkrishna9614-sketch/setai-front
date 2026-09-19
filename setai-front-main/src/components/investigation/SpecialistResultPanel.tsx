@@ -162,16 +162,20 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
   const rawModel = model as unknown as Record<string, unknown>;
   const output = unwrapOutput(model);
   const task = String(model.task || rawModel.task_type || '').toLowerCase();
-  const modelName = model.model_name || 'Specialist model';
+  const modelName = model.model_name || String(rawModel.model_name || 'Specialist model');
   const version = model.version || String(rawModel.model_version || '');
+  const success = rawModel.success !== undefined
+    ? Boolean(rawModel.success)
+    : undefined;
+  const status = model.status || (success === false ? 'failed' : 'success');
 
   if (!output) {
     return {
       task,
       modelName,
       version,
-      status: model.status,
-      raw: model.output
+      status,
+      raw: model.output ?? rawModel.result
     };
   }
 
@@ -235,7 +239,7 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     task,
     modelName,
     version,
-    status: model.status,
+    status,
     answer,
     caption,
     finding,

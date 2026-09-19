@@ -62,15 +62,16 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       if (typeof candidate !== 'string') return undefined;
       const text = candidate.trim();
       if (!text) return undefined;
-      if (/^data:image\\//i.test(text) || /^blob:/i.test(text) || /^https?:\\/\\//i.test(text) || /^\\//.test(text)) {
+      if (/^data:image\//i.test(text) || /^blob:/i.test(text) || /^https?:\/\//i.test(text) || /^\//.test(text)) {
         return text;
       }
-      const looksLikeBase64 = /^[A-Za-z0-9+/=\\s_-]+$/.test(text) && text.length > 200;
+
+      const looksLikeBase64 = /^[A-Za-z0-9+/=\s_-]+$/.test(text) && text.length > 200;
       if (looksLikeBase64 && (
         keys.includes(keyHint) ||
         /base64|image|visual|overlay|mask|change|reference|historical|before|current/i.test(keyHint)
       )) {
-        return `data:image/jpeg;base64,${text.replace(/\\s/g, '')}`;
+        return \`data:image/jpeg;base64,\${text.replace(/\s/g, '')}\`;
       }
       return undefined;
     };

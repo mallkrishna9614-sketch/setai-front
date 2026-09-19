@@ -120,6 +120,37 @@ function textValue(record: Record<string, unknown> | null, ...keys: string[]): s
   return undefined;
 }
 
+function findNestedText(record: Record<string, unknown> | null, keys: string[]): string | undefined {
+  if (!record) return undefined;
+
+  const direct = textValue(record, ...keys);
+  if (direct) return direct;
+
+  const queue: unknown[] = Object.values(record);
+  const seen = new Set<object>();
+
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value || typeof value !== 'object') continue;
+    if (seen.has(value as object)) continue;
+    seen.add(value as object);
+
+    if (Array.isArray(value)) {
+      queue.push(...value);
+      continue;
+    }
+
+    const nested = asRecord(value);
+    if (nested) {
+      const match = textValue(nested, ...keys);
+      if (match) return match;
+      queue.push(...Object.values(nested));
+    }
+  }
+
+  return undefined;
+}
+
 function normalizeRegionFindings(value: unknown): ChangeRegionFinding[] {
   if (!Array.isArray(value)) return [];
 
@@ -237,7 +268,7 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     'rationale'
   );
 
-  const changeVisualizationUrl = textValue(
+  const changeVisualizationUrl = findNestedText(
     output,
     'change_visualization_url',
     'change_visualization',
@@ -246,14 +277,14 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     'current_with_changes',
     'visualization_url'
   );
-  const changeMaskUrl = textValue(
+  const changeMaskUrl = findNestedText(
     output,
     'change_mask_url',
     'change_mask',
     'change_map',
     'mask_url'
   );
-  const sarMaskUrl = textValue(
+  const sarMaskUrl = findNestedText(
     output,
     'sar_mask_url',
     'sar_change_mask',

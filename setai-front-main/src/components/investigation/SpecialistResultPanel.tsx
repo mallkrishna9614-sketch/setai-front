@@ -123,10 +123,27 @@ function textValue(record: Record<string, unknown> | null, ...keys: string[]): s
 function findNestedText(record: Record<string, unknown> | null, ...keys: string[]): string | undefined {
   if (!record) return undefined;
 
-  const direct = textValue(record, ...keys);
-  if (direct) return direct;
+  const wanted = new Set(keys.map(key => key.toLowerCase()));
 
-  const queue: unknown[] = Object.values(record);
+  const scalarText = (value: unknown): string | undefined => {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    return undefined;
+  };
+
+  const extractArtifactValue = (value: unknown): string | undefined => {
+    const direct = scalarText(value);
+    if (direct) return direct;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+
+    const obj = value as Record<string, unknown>;
+    for (const key of ['url', 'src', 'href', 'path', 'uri', 'data_url', 'image_url']) {
+      const found = scalarText(obj[key]);
+      if (found) return found;
+    }
+    return undefined;
+  };
+
+  const queue: unknown[] = [record];
   const seen = new Set<object>();
 
   while (queue.length) {
@@ -140,11 +157,29 @@ function findNestedText(record: Record<string, unknown> | null, ...keys: string[
       continue;
     }
 
-    const nested = asRecord(value);
-    if (nested) {
-      const match = textValue(nested, ...keys);
-      if (match) return match;
-      queue.push(...Object.values(nested));
+    const obj = value as Record<string, unknown>;
+
+    for (const [key, child] of Object.entries(obj)) {
+      const normalizedKey = key.toLowerCase();
+      if (wanted.has(normalizedKey)) {
+        const extracted = extractArtifactValue(child);
+        if (extracted) return extracted;
+      }
+
+      if (
+        normalizedKey.includes('visual') ||
+        normalizedKey.includes('overlay') ||
+        normalizedKey.includes('mask') ||
+        normalizedKey.includes('artifact') ||
+        normalizedKey.includes('annotated')
+      ) {
+        const extracted = extractArtifactValue(child);
+        if (extracted) return extracted;
+      }
+
+      if (child && typeof child === 'object') {
+        queue.push(child);
+      }
     }
   }
 
@@ -275,7 +310,12 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     'annotated_image',
     'overlay_image',
     'current_with_changes',
-    'visualization_url'
+    'visualization_url',
+    'visualization',
+    'overlay_url',
+    'annotated_image_url',
+    'artifact_url',
+    'image_url'
   );
   const changeMaskUrl = findNestedText(
     output,

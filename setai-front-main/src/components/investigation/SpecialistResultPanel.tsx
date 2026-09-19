@@ -215,7 +215,10 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     output.semantic_findings ??
     output.change_findings ??
     output.findings ??
-    output.descriptions
+    output.descriptions ??
+    output.regions ??
+    output.changed_regions ??
+    output.detections
   );
 
   const whatChanged =

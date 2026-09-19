@@ -249,8 +249,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const renderImage = (image: ImageMetadata, className?: string) => {
     if (!isGeoTIFF(image)) {
-      const src = resolvePreviewUrl(image.preview_url) ||
-        (image.file ? URL.createObjectURL(image.file) : '');
+      // Prefer the original browser File for uploaded PNG/JPEG images.
+      // Backend preview URLs may point to temporary/internal paths; the local
+      // object URL is the most reliable source during an investigation.
+      const localSrc = image.file ? URL.createObjectURL(image.file) : '';
+      const src = localSrc || resolvePreviewUrl(image.preview_url) || '';
       if (!src) {
         return (
           <div className="text-xs text-neutral-500 text-center p-4">

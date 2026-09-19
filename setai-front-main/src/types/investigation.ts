@@ -122,6 +122,8 @@ export interface ChangeAnalysisData {
   change_visualization_url?: string;
   change_mask_url?: string;
   sar_mask_url?: string;
+  /** Raw provider output retained for provider-specific visualization artifacts. */
+  model_output?: Record<string, any>;
 }
 
 export interface ExecutionData {

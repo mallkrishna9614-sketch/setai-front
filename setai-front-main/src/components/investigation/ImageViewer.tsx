@@ -142,7 +142,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       'historical_image',
       'reference_base64',
       'reference_image_base64',
-      'before_image_base64'
+      'before_image_base64',
+      'historical_image_base64',
+      'historical_base64',
+      'before_image',
+      'before_base64',
+      'image_base64',
+      'image_data_url',
+      'data_url'
     ]);
 
   const resolvedChangeArtifact = resolveArtifactUrl(remoteChangeArtifact);

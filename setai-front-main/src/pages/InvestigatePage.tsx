@@ -291,6 +291,8 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             regions={displayRegions}
             changeVisualizationUrl={changeAnalysis?.change_visualization_url}
             changeMaskUrl={changeAnalysis?.change_mask_url}
+            referenceImageUrl={changeAnalysis?.reference_image}
+            modelOutput={changeAnalysis?.model_output}
             isLoading={isLoading}
           />
         </div>

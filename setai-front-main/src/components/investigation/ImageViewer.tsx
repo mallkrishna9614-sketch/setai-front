@@ -155,7 +155,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       return trimmed;
     }
     if (trimmed.length > 200 && /^[A-Za-z0-9+/=\s_-]+$/.test(trimmed)) {
-      return return `data:image/png;base64,${trimmed.replace(/\s/g, '')}`;;
+      return `data:image/png;base64,${trimmed.replace(/\s/g, '')}`;
     }
     return undefined;
   };

@@ -89,6 +89,56 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
         </div>
       </div>
 
+      {(data.change_visualization_url || data.change_mask_url || data.sar_mask_url) && (
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-neutral-100">Detected change visualization</h3>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Visual artifacts returned by the specialist model. These are shown directly from the model output.
+            </p>
+          </div>
+          {data.change_visualization_url && (
+            <div className="rounded border border-neutral-800 bg-neutral-950 overflow-hidden">
+              <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-neutral-500 border-b border-neutral-800">
+                Current + detected changes
+              </div>
+              <img
+                src={data.change_visualization_url}
+                alt="Current satellite image with detected change regions"
+                className="w-full max-h-[620px] object-contain bg-black"
+                loading="lazy"
+              />
+            </div>
+          )}
+          {data.change_mask_url && (
+            <div className="rounded border border-neutral-800 bg-neutral-950 overflow-hidden">
+              <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-neutral-500 border-b border-neutral-800">
+                Optical change mask
+              </div>
+              <img
+                src={data.change_mask_url}
+                alt="Optical satellite change mask"
+                className="w-full max-h-[520px] object-contain bg-black"
+                loading="lazy"
+              />
+            </div>
+          )}
+          {data.sar_mask_url && (
+            <div className="rounded border border-neutral-800 bg-neutral-950 overflow-hidden">
+              <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-neutral-500 border-b border-neutral-800">
+                SAR change mask
+              </div>
+              <img
+                src={data.sar_mask_url}
+                alt="SAR change mask"
+                className="w-full max-h-[520px] object-contain bg-black"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {data.region_findings && data.region_findings.length > 0 && (
         <div className="space-y-3">
           <div>

@@ -94,6 +94,17 @@ export interface InvestigationFinding {
   cross_modal_finding?: string;
 }
 
+export interface ChangeRegionFinding {
+  id?: string;
+  title?: string;
+  region?: string;
+  change?: string;
+  type?: string;
+  evidence?: string;
+  confidence?: number;
+  bbox?: [number, number, number, number];
+}
+
 export interface ChangeAnalysisData {
   comparison?: string;
   reference_image?: string;
@@ -102,6 +113,11 @@ export interface ChangeAnalysisData {
   regions?: number | FindingRegion[];
   signal?: number;
   reproduction_id?: string;
+  change_detected?: boolean;
+  change_type?: string;
+  what_changed?: string;
+  why?: string;
+  region_findings?: ChangeRegionFinding[];
 }
 
 export interface ExecutionData {

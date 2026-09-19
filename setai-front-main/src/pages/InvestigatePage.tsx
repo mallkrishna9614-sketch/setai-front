@@ -12,7 +12,6 @@ import { InvestigationPlan } from '../components/investigation/InvestigationPlan
 import { FindingsPanel } from '../components/investigation/FindingsPanel';
 import { EvidencePanel } from '../components/investigation/EvidencePanel';
 import { ConfidenceGauge } from '../components/investigation/ConfidenceGauge';
-import { ModelResultsList } from '../components/investigation/ModelResultsList';
 import { ConflictWarning } from '../components/investigation/ConflictWarning';
 import { ExecutionTrace } from '../components/investigation/ExecutionTrace';
 import { CompatibilityStatus } from '../components/investigation/CompatibilityStatus';

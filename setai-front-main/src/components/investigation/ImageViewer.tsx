@@ -113,15 +113,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const trimmed = value.trim();
     if (!trimmed) return undefined;
     if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
-    // Remote ML image artifacts are loaded through the FastAPI proxy so
-    // browser access does not depend on ML-provider CORS or tunnel behavior.
-    if (/^https?:\/\//i.test(trimmed)) {
-      return getApiBaseUrl() + '/ml-artifacts/proxy?url=' + encodeURIComponent(trimmed);
-    }
-    if (trimmed.startsWith('//')) {
-      const absolute = window.location.protocol + trimmed;
-      return getApiBaseUrl() + '/ml-artifacts/proxy?url=' + encodeURIComponent(absolute);
-    }
+    // Browser-loadable absolute artifact URLs should be used directly.
+    // The backend does not need to proxy ML-generated images.
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (trimmed.startsWith('//')) return window.location.protocol + trimmed;
     if (trimmed.startsWith('/')) return getApiBaseUrl() + trimmed;
     return getApiBaseUrl() + '/' + trimmed;
   };
@@ -486,41 +481,42 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             {/* 1. SIDE-BY-SIDE COMPARISON (Image 1 and Image 2 displayed side-by-side) */}
             {hasRemoteTemporalComparison ? (
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-full max-h-full">
+                {/* Historical/reference panel. Always keep the uploaded image as a visual fallback. */}
                 <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
-                  <img
-                    src={resolvedReferenceArtifact}
-                    alt="Historical satellite reference used by the temporal change model"
-                    className="w-full h-full object-contain bg-black"
-                    loading="eager"
-                    onError={(event) => {
-                      console.warn('SatQuery AI - historical artifact failed:', resolvedReferenceArtifact);
-                      const fallback = images[0];
-                      const fallbackSrc = fallback?.preview_url || (fallback?.file ? URL.createObjectURL(fallback.file) : '');
-                      if (fallbackSrc) event.currentTarget.src = fallbackSrc;
-                      else event.currentTarget.style.display = 'none';
-                    }}
-                  />
+                  {renderImage(images[0], 'w-full h-full object-contain')}
+                  {resolvedReferenceArtifact && (
+                    <img
+                      src={resolvedReferenceArtifact}
+                      alt="Historical satellite reference used by the temporal change model"
+                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                      loading="eager"
+                      onError={(event) => {
+                        console.warn('SatQuery AI - historical artifact unavailable:', resolvedReferenceArtifact);
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-10 shadow-md">
                     <span className="font-semibold">Historical reference</span>
                   </div>
                 </div>
 
+                {/* Current panel. Always show the user's current upload; ML visualization is an overlay. */}
                 <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
-                  {resolvedChangeArtifact ? (
+                  {renderImage(currentImage, 'w-full h-full object-contain')}
+                  {resolvedChangeArtifact && (
                     <img
                       src={resolvedChangeArtifact}
                       alt="Current satellite image with AI-detected changes"
-                      className="w-full h-full object-contain bg-black"
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
                       loading="eager"
                       onError={(event) => {
-                        console.warn('SatQuery AI - remote change visualization failed:', resolvedChangeArtifact);
+                        console.warn('SatQuery AI - change visualization unavailable:', resolvedChangeArtifact);
                         event.currentTarget.style.display = 'none';
                       }}
                     />
-                  ) : (
-                    renderImage(currentImage, 'w-full h-full object-contain')
                   )}
-                  <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-10 shadow-md">
+                  <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-20 shadow-md">
                     <span className="font-semibold">Current + detected changes</span>
                   </div>
                   {renderOverlays('remote-change')}

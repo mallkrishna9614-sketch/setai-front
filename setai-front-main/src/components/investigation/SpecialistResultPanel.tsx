@@ -275,7 +275,11 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
         : undefined;
 
   const regions = normalizeRegions(
-    output.regions ?? output.changed_regions ?? output.detections
+    output.regions ??
+    output.changed_regions ??
+    output.detections ??
+    output.region_findings ??
+    output.change_findings
   );
 
   const regionFindings = normalizeRegionFindings(
@@ -413,7 +417,9 @@ export function deriveSpecialistChangeAnalysis(
       region_findings: normalized.regionFindings,
       change_visualization_url: normalized.changeVisualizationUrl,
       change_mask_url: normalized.changeMaskUrl,
-      sar_mask_url: normalized.sarMaskUrl
+      sar_mask_url: normalized.sarMaskUrl,
+      // Preserve the complete provider payload for frontend artifact resolution.
+      model_output: raw ?? undefined
     };
   }
 

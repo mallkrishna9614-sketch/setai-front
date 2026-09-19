@@ -184,6 +184,18 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
     setError(null);
   };
 
+  const modelResults = investigation?.execution?.model_results || [];
+  const specialistRegions = investigation
+    ? extractSpecialistRegions(modelResults)
+    : [];
+  const displayRegions = investigation?.finding?.regions?.length
+    ? investigation.finding.regions
+    : specialistRegions;
+  const derivedChangeAnalysis = investigation
+    ? deriveSpecialistChangeAnalysis(modelResults)
+    : null;
+  const changeAnalysis = investigation?.execution?.change_analysis || derivedChangeAnalysis;
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Demo Presets Bar */}
@@ -278,10 +290,14 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             isLoading={isLoading}
           />
 
-          {investigation?.execution?.change_analysis && (
+          {changeAnalysis && (
             <div ref={resultsRef} className="scroll-mt-6">
-              <ChangeAnalysisPanel data={investigation.execution.change_analysis} />
+              <ChangeAnalysisPanel data={changeAnalysis} />
             </div>
+          )}
+
+          {modelResults.length > 0 && (
+            <SpecialistResultPanel models={modelResults} />
           )}
 
           {investigation?.finding && (

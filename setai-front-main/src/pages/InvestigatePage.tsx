@@ -301,7 +301,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
         <div ref={resultsRef} className="scroll-mt-6 space-y-5">
           {changeAnalysis && <ChangeAnalysisPanel data={changeAnalysis} />}
 
-          {investigation.finding && (
+          {investigation.finding && !changeAnalysis && (
             <FindingsPanel
               investigationId={investigation.investigation_id}
               finding={investigation.finding}

@@ -120,7 +120,7 @@ function textValue(record: Record<string, unknown> | null, ...keys: string[]): s
   return undefined;
 }
 
-function findNestedText(record: Record<string, unknown> | null, keys: string[]): string | undefined {
+function findNestedText(record: Record<string, unknown> | null, ...keys: string[]): string | undefined {
   if (!record) return undefined;
 
   const direct = textValue(record, ...keys);

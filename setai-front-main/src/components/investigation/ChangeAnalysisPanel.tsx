@@ -5,6 +5,42 @@ interface ChangeAnalysisPanelProps {
   data?: ChangeAnalysisData | null;
 }
 
+
+function findArtifact(value: unknown, keys: string[]): string | undefined {
+  const seen = new Set<object>();
+  const queue: unknown[] = [value];
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || typeof current !== 'object') continue;
+    if (seen.has(current as object)) continue;
+    seen.add(current as object);
+
+    if (Array.isArray(current)) {
+      queue.push(...current);
+      continue;
+    }
+
+    const record = current as Record<string, unknown>;
+    for (const key of keys) {
+      const candidate = record[key];
+      if (typeof candidate === 'string' && candidate.trim()) {
+        const value = candidate.trim();
+        if (value.startsWith('data:image/')) return value;
+        if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value;
+        // Some providers return raw base64 without the data URI prefix.
+        if (/^[A-Za-z0-9+/=\\s]+$/.test(value) && value.length > 200) {
+          return `data:image/png;base64,${value.replace(/\\s/g, '')}`;
+        }
+      }
+    }
+
+    queue.push(...Object.values(record));
+  }
+
+  return undefined;
+}
+
 function formatNumber(value?: number, digits = 2): string {
   return typeof value === 'number' && Number.isFinite(value)
     ? value.toFixed(digits)
@@ -15,6 +51,33 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
   if (!data) return null;
 
   const regionCount = Array.isArray(data.regions) ? data.regions.length : data.regions;
+  const modelArtifact =
+    data.change_visualization_url ||
+    data.change_mask_url ||
+    data.sar_mask_url ||
+    findArtifact(data.model_output, [
+      'change_visualization_url',
+      'change_visualization',
+      'annotated_image',
+      'annotated_image_url',
+      'overlay_image',
+      'overlay_image_url',
+      'current_with_changes',
+      'visualization_url',
+      'visualization',
+      'image_url',
+      'artifact_url',
+      'change_mask_url',
+      'change_mask',
+      'change_map',
+      'mask_url',
+      'image_base64',
+      'visualization_base64',
+      'overlay_base64',
+      'annotated_image_base64',
+      'change_visualization_base64',
+      'change_mask_base64'
+    ]);
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 sm:p-5 space-y-4">
@@ -36,7 +99,7 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
         )}
       </div>
 
-      {(data.change_visualization_url || data.change_mask_url || data.sar_mask_url) && (
+      {(modelArtifact) && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(260px,0.7fr)] gap-4">
           <div className="rounded border border-neutral-800 bg-neutral-950 overflow-hidden">
             <div className="px-3 py-2 flex items-center justify-between border-b border-neutral-800">
@@ -46,12 +109,12 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
               </div>
               <span className="text-[10px] text-status-success font-medium">MODEL OUTPUT</span>
             </div>
-            {data.change_visualization_url ? (
-              <img src={data.change_visualization_url} alt="Current satellite image with detected change regions" className="w-full max-h-[560px] object-contain bg-black" loading="eager" />
+            {modelArtifact ? (
+              <img src={modelArtifact} alt="Current satellite image with detected change regions" className="w-full max-h-[560px] object-contain bg-black" loading="eager" />
             ) : data.change_mask_url ? (
-              <img src={data.change_mask_url} alt="Optical satellite change mask" className="w-full max-h-[560px] object-contain bg-black" loading="eager" />
+              <img src={modelArtifact} alt="Optical satellite change mask" className="w-full max-h-[560px] object-contain bg-black" loading="eager" />
             ) : (
-              <img src={data.sar_mask_url} alt="SAR change mask" className="w-full max-h-[560px] object-contain bg-black" loading="eager" />
+              <img src={modelArtifact} alt="SAR change mask" className="w-full max-h-[560px] object-contain bg-black" loading="eager" />
             )}
           </div>
 

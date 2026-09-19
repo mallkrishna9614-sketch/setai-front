@@ -289,7 +289,7 @@ export function deriveSpecialistChangeAnalysis(
 
     if (
       normalized.changedAreaPercent === undefined &&
-      normalized.regions.length === 0 &&
+      (normalized.regions?.length ?? 0) === 0 &&
       normalized.changeDetected === undefined &&
       !normalized.changeType &&
       !comparison &&
@@ -304,7 +304,7 @@ export function deriveSpecialistChangeAnalysis(
       reference_image: referenceImage,
       match_score: matchScore,
       changed_area: normalized.changedAreaPercent,
-      regions: normalized.regions,
+      regions: normalized.regions ?? [],
       signal,
       change_detected: normalized.changeDetected,
       change_type: normalized.changeType,

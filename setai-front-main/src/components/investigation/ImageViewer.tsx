@@ -111,26 +111,37 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return undefined;
   };
 
-  const resolveArtifactUrl = (value?: string): string | undefined => {
-    if (!value) return undefined;
+  const resolveArtifactCandidates = (value?: string): string[] => {
+    if (!value) return [];
     const trimmed = value.trim();
-    if (!trimmed) return undefined;
+    if (!trimmed) return [];
 
-    if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    if (trimmed.startsWith('//')) return window.location.protocol + trimmed;
+    if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\/\//i.test(trimmed)) {
+      return [trimmed];
+    }
+    if (trimmed.startsWith('//')) return [window.location.protocol + trimmed];
+    if (trimmed.startsWith('/')) return [getApiBaseUrl() + trimmed];
 
     // Remote ML may return generated artifacts as bare filenames.
-    // Resolve those against the ML service, not the Vercel frontend host.
+    // Try the common static prefixes because the ML host may not expose
+    // generated files from its root path.
     if (/^[^/\\]+\.(png|jpe?g|webp|gif|tiff?)$/i.test(trimmed)) {
-      return ML_ARTIFACT_BASE_URL + '/' + trimmed;
+      const name = encodeURIComponent(trimmed);
+      return [
+        ML_ARTIFACT_BASE_URL + '/' + name,
+        ML_ARTIFACT_BASE_URL + '/artifacts/' + name,
+        ML_ARTIFACT_BASE_URL + '/outputs/' + name,
+        ML_ARTIFACT_BASE_URL + '/results/' + name,
+        ML_ARTIFACT_BASE_URL + '/static/' + name,
+        ML_ARTIFACT_BASE_URL + '/generated/' + name
+      ];
     }
 
-    if (trimmed.startsWith('/')) {
-      return getApiBaseUrl() + trimmed;
-    }
+    return [ML_ARTIFACT_BASE_URL + '/' + trimmed.replace(/^\/+/, '')];
+  };
 
-    return ML_ARTIFACT_BASE_URL + '/' + trimmed.replace(/^\/+/, '');
+  const resolveArtifactUrl = (value?: string): string | undefined => {
+    return resolveArtifactCandidates(value)[0];
   };
 
   // The remote temporal model performs the historical lookup internally.
@@ -181,7 +192,80 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const resolvedChangeArtifact = resolveArtifactUrl(remoteChangeArtifact);
   const resolvedReferenceArtifact = resolveArtifactUrl(remoteReferenceArtifact);
-  const hasRemoteTemporalComparison = Boolean(resolvedReferenceArtifact);
+  const extractViewerRegions = (value: unknown): FindingRegion[] => {
+    const found: FindingRegion[] = [];
+    const seen = new Set<object>();
+    const regionKeys = new Set([
+      'regions', 'region_findings', 'changed_regions', 'detections',
+      'change_findings', 'semantic_findings', 'findings'
+    ]);
+
+    const toNumber = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    const visit = (node: unknown) => {
+      if (!node || typeof node !== 'object') return;
+      if (seen.has(node as object)) return;
+      seen.add(node as object);
+
+      if (Array.isArray(node)) {
+        node.forEach(visit);
+        return;
+      }
+
+      const obj = node as Record<string, unknown>;
+      for (const [key, child] of Object.entries(obj)) {
+        const lower = key.toLowerCase();
+        if (regionKeys.has(lower) && Array.isArray(child)) {
+          child.forEach((item, index) => {
+            if (!item || typeof item !== 'object') return;
+            const r = item as Record<string, unknown>;
+            const raw = r.bbox;
+            let bbox: [number, number, number, number] | null = null;
+
+            if (Array.isArray(raw) && raw.length === 4) {
+              const nums = raw.map(toNumber);
+              if (nums.every((n): n is number => n !== undefined)) {
+                bbox = [nums[0], nums[1], nums[2], nums[3]];
+              }
+            } else {
+              const x = toNumber(r.x);
+              const y = toNumber(r.y);
+              const w = toNumber(r.width);
+              const h = toNumber(r.height);
+              const x1 = toNumber(r.x1);
+              const y1 = toNumber(r.y1);
+              const x2 = toNumber(r.x2);
+              const y2 = toNumber(r.y2);
+              if (x !== undefined && y !== undefined && w !== undefined && h !== undefined) {
+                bbox = [y, x, y + h, x + w];
+              } else if (x1 !== undefined && y1 !== undefined && x2 !== undefined && y2 !== undefined) {
+                bbox = [y1, x1, y2, x2];
+              }
+            }
+
+            if (bbox) {
+              found.push({
+                id: String(r.id ?? ('ml-change-' + (found.length + index + 1))),
+                label: String(r.change ?? r.type ?? r.label ?? r.title ?? ('Detected change ' + (index + 1))),
+                bbox,
+                confidence: toNumber(r.confidence ?? r.score)
+              });
+            }
+          });
+        }
+        if (child && typeof child === 'object') visit(child);
+      }
+    };
+
+    visit(value);
+    return found;
+  };
+
+  const viewerRegions = regions.length > 0 ? regions : extractViewerRegions(modelOutput);
+  const hasRemoteTemporalComparison = Boolean(resolvedReferenceArtifact || viewerRegions.length);
   
   React.useEffect(() => {
     setReferenceArtifactReady(false);
@@ -282,6 +366,40 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return url;
   };
 
+  const RemoteArtifactImage: React.FC<{
+    value?: string;
+    alt: string;
+    className: string;
+    onReady: () => void;
+    onFail: () => void;
+  }> = ({ value, alt, className, onReady, onFail }) => {
+    const candidates = React.useMemo(() => resolveArtifactCandidates(value), [value]);
+    const [index, setIndex] = React.useState(0);
+
+    React.useEffect(() => {
+      setIndex(0);
+    }, [value]);
+
+    if (!candidates.length) return null;
+
+    return (
+      <img
+        src={candidates[index]}
+        alt={alt}
+        className={className}
+        loading="eager"
+        onLoad={onReady}
+        onError={() => {
+          if (index + 1 < candidates.length) {
+            setIndex(index + 1);
+          } else {
+            onFail();
+          }
+        }}
+      />
+    );
+  };
+
   const renderImage = (image: ImageMetadata, className?: string) => {
     if (!isGeoTIFF(image)) {
       // Prefer the original browser File for uploaded PNG/JPEG images.
@@ -316,8 +434,38 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return <GeoTIFFCanvas image={image} className={className} />;
   };
 
+  const renderChangeFallback = () => {
+    if (changeArtifactReady || !viewerRegions.length) return null;
+    return (
+      <div className="absolute inset-0 pointer-events-none z-15">
+        {viewerRegions.map((reg, index) => {
+          const values = reg.bbox.map(Number);
+          const maxValue = Math.max(...values.map(v => Math.abs(v)));
+          const scale = maxValue > 1 ? (maxValue <= 2048 ? 1024 : maxValue) : 1;
+          const [ymin, xmin, ymax, xmax] = values.map(v => Math.max(0, Math.min(1, v / scale)));
+          return (
+            <div
+              key={'change-fallback-' + (reg.id || index)}
+              className="absolute rounded border-2 border-status-error bg-status-error/30 shadow-[0_0_12px_rgba(239,68,68,0.45)]"
+              style={{
+                top: (ymin * 100) + '%',
+                left: (xmin * 100) + '%',
+                width: Math.max(1, (xmax - xmin) * 100) + '%',
+                height: Math.max(1, (ymax - ymin) * 100) + '%'
+              }}
+            >
+              <span className="absolute -top-5 left-0 rounded bg-status-error px-1.5 py-0.5 text-[9px] font-bold text-white whitespace-nowrap">
+                AI CHANGE
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderOverlays = (keyPrefix: string) => {
-    if (!showOverlays || !regions.length) return null;
+    if (!showOverlays || !viewerRegions.length) return null;
 
     const normalizeBbox = (bbox: FindingRegion['bbox']) => {
       const values = bbox.map(Number);
@@ -337,7 +485,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       ];
     };
 
-    return regions.map((reg, rIdx) => {
+    return viewerRegions.map((reg, rIdx) => {
       const [ymin, xmin, ymax, xmax] = normalizeBbox(reg.bbox);
       const cx = (xmin + xmax) / 2;
       const cy = (ymin + ymax) / 2;
@@ -451,7 +599,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           )}
 
           {/* Overlays toggle */}
-          {regions.length > 0 && (
+          {viewerRegions.length > 0 && (
             <button
               type="button"
               onClick={() => setShowOverlays(!showOverlays)}
@@ -462,7 +610,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>Overlays ({regions.length})</span>
+              <span>Overlays ({viewerRegions.length})</span>
             </button>
           )}
 
@@ -544,24 +692,21 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
                   {renderImage(images[0], 'w-full h-full object-contain')}
                   {resolvedReferenceArtifact && referenceArtifactReady && (
-                    <img
-                      src={resolvedReferenceArtifact}
+                    <RemoteArtifactImage
+                      value={resolvedReferenceArtifact}
                       alt="Historical satellite reference used by the temporal change model"
                       className="absolute inset-0 w-full h-full object-contain z-10"
-                      loading="eager"
+                      onReady={() => setReferenceArtifactReady(true)}
+                      onFail={() => setReferenceArtifactReady(false)}
                     />
                   )}
                   {resolvedReferenceArtifact && !referenceArtifactReady && (
-                    <img
-                      src={resolvedReferenceArtifact}
+                    <RemoteArtifactImage
+                      value={resolvedReferenceArtifact}
                       alt=""
-                      aria-hidden="true"
                       className="hidden"
-                      onLoad={() => setReferenceArtifactReady(true)}
-                      onError={() => {
-                        console.warn('SatQuery AI - historical artifact unavailable:', resolvedReferenceArtifact);
-                        setReferenceArtifactReady(false);
-                      }}
+                      onReady={() => setReferenceArtifactReady(true)}
+                      onFail={() => setReferenceArtifactReady(false)}
                     />
                   )}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-10 shadow-md">
@@ -573,29 +718,27 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
                   {renderImage(currentImage, 'w-full h-full object-contain')}
                   {resolvedChangeArtifact && changeArtifactReady && (
-                    <img
-                      src={resolvedChangeArtifact}
+                    <RemoteArtifactImage
+                      value={resolvedChangeArtifact}
                       alt="Current satellite image with AI-detected changes"
                       className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
-                      loading="eager"
+                      onReady={() => setChangeArtifactReady(true)}
+                      onFail={() => setChangeArtifactReady(false)}
                     />
                   )}
                   {resolvedChangeArtifact && !changeArtifactReady && (
-                    <img
-                      src={resolvedChangeArtifact}
+                    <RemoteArtifactImage
+                      value={resolvedChangeArtifact}
                       alt=""
-                      aria-hidden="true"
                       className="hidden"
-                      onLoad={() => setChangeArtifactReady(true)}
-                      onError={() => {
-                        console.warn('SatQuery AI - change visualization unavailable:', resolvedChangeArtifact);
-                        setChangeArtifactReady(false);
-                      }}
+                      onReady={() => setChangeArtifactReady(true)}
+                      onFail={() => setChangeArtifactReady(false)}
                     />
                   )}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-20 shadow-md">
                     <span className="font-semibold">Current + detected changes</span>
                   </div>
+                  {renderChangeFallback()}
                   {renderOverlays('remote-change')}
                 </div>
               </div>
@@ -652,6 +795,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     <span className="text-neutral-500">·</span>
                     <span className="text-neutral-400">{images[1].width}×{images[1].height}</span>
                   </div>
+                  {renderChangeFallback()}
                   {renderOverlays('sbs-img2')}
                 </div>
               </div>
@@ -708,6 +852,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   </div>
                 </div>
 
+                {renderChangeFallback()}
                 {renderOverlays('swipe')}
               </div>
             ) : (
@@ -720,15 +865,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   {renderImage(currentImage, 'w-full h-full object-contain')}
                 </div>
                 {resolvedChangeArtifact && changeArtifactReady && (
-                  <img
-                    src={resolvedChangeArtifact}
+                  <RemoteArtifactImage
+                    value={resolvedChangeArtifact}
                     alt="AI detected change overlay"
                     className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
-                    style={{
-                      opacity: changeMaskUrl ? 0.62 : 1,
-                      mixBlendMode: changeMaskUrl ? 'screen' : 'normal'
-                    }}
-                    loading="eager"
+                    onReady={() => setChangeArtifactReady(true)}
+                    onFail={() => setChangeArtifactReady(false)}
                   />
                 )}
                 <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
@@ -739,6 +881,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   <span className="text-neutral-400">{currentImage.width}×{currentImage.height}</span>
                 </div>
 
+                {renderChangeFallback()}
                 {renderOverlays('single')}
               </div>
             )}

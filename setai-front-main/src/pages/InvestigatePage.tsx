@@ -314,7 +314,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             <SpecialistResultPanel models={nonChangeModelResults} />
           )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {investigation.tasks && investigation.tasks.length > 0 && (
               <InvestigationPlan tasks={investigation.tasks} isLoading={isLoading} />
             )}

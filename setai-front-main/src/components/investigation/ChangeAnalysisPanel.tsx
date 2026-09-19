@@ -18,11 +18,22 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-5 space-y-4">
-      <div className="pb-3 border-b border-neutral-800">
-        <h2 className="text-sm font-semibold text-neutral-100">Satellite Change Investigation</h2>
-        <span className="text-xs text-neutral-500">
-          Remote change-analysis output surfaced through SatQuery AI
-        </span>
+      <div className="pb-3 border-b border-neutral-800 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-neutral-100">Satellite Change Investigation</h2>
+          <span className="text-xs text-neutral-500">
+            Actual specialist-model change analysis surfaced through SatQuery AI
+          </span>
+        </div>
+        {typeof data.signal === 'number' && Number.isFinite(data.signal) && (
+          <div className="text-right shrink-0">
+            <div className="text-[10px] uppercase tracking-wide text-neutral-500">Detection signal</div>
+            <div className="text-lg font-semibold font-mono text-neutral-100">
+              {formatNumber(data.signal <= 1 ? data.signal * 100 : data.signal, 2)}%
+            </div>
+            <div className="text-[10px] text-neutral-500">model-derived · uncalibrated</div>
+          </div>
+        )}
       </div>
 
       {(data.what_changed || data.change_type || data.change_detected !== undefined) && (
@@ -31,6 +42,11 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
           <div className="text-sm font-medium text-neutral-100">
             {data.what_changed || data.change_type || 'Change detected in the analyzed scene.'}
           </div>
+          {data.change_type && data.what_changed && data.change_type !== data.what_changed && (
+            <div className="text-xs text-neutral-400">
+              Classification: <span className="text-neutral-200">{data.change_type}</span>
+            </div>
+          )}
           <div className="text-xs text-neutral-400">
             {data.change_detected === undefined
               ? ''
@@ -124,6 +140,18 @@ export const ChangeAnalysisPanel: React.FC<ChangeAnalysisPanelProps> = ({ data }
         <div className="rounded border border-neutral-800 bg-neutral-950 p-4">
           <div className="text-[11px] uppercase tracking-wide text-neutral-500 mb-1">Why?</div>
           <p className="text-sm text-neutral-300 leading-relaxed">{data.why}</p>
+        </div>
+      )}
+
+      {!data.why && (data.changed_area !== undefined || regionCount !== undefined || data.signal !== undefined) && (
+        <div className="rounded border border-neutral-800 bg-neutral-950 p-4">
+          <div className="text-[11px] uppercase tracking-wide text-neutral-500 mb-1">Why?</div>
+          <p className="text-sm text-neutral-300 leading-relaxed">
+            The change specialist detected {regionCount ?? 0} region{regionCount === 1 ? '' : 's'} covering
+            {' '}{typeof data.changed_area === 'number' ? `${formatNumber(data.changed_area)}%` : 'an unreported'} of the scene.
+            {typeof data.signal === 'number' ? ` Its model-derived detection signal is ${formatNumber(data.signal <= 1 ? data.signal * 100 : data.signal, 2)}%.` : ''}
+            {' '}This signal is not a calibrated probability; semantic region descriptions are model observations and should not be treated as ground-truth confirmation.
+          </p>
         </div>
       )}
 

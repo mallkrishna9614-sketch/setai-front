@@ -383,10 +383,15 @@ export function deriveSpecialistChangeAnalysis(
         ? raw.comparison
         : undefined;
 
-    const referenceImage =
-      typeof raw?.reference_image === 'string'
-        ? raw.reference_image
-        : undefined;
+    const referenceImage = findNestedText(
+      raw,
+      'reference_image',
+      'reference_image_url',
+      'historical_image',
+      'historical_image_url',
+      'before_image',
+      'before_image_url'
+    );
 
     const matchScore = finiteNumber(raw?.match_score);
     const signal = finiteNumber(raw?.signal);

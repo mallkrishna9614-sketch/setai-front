@@ -693,7 +693,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   {renderImage(images[0], 'w-full h-full object-contain')}
                   {resolvedReferenceArtifact && referenceArtifactReady && (
                     <RemoteArtifactImage
-                      value={resolvedReferenceArtifact}
+                      value={remoteReferenceArtifact}
                       alt="Historical satellite reference used by the temporal change model"
                       className="absolute inset-0 w-full h-full object-contain z-10"
                       onReady={() => setReferenceArtifactReady(true)}
@@ -702,7 +702,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   )}
                   {resolvedReferenceArtifact && !referenceArtifactReady && (
                     <RemoteArtifactImage
-                      value={resolvedReferenceArtifact}
+                      value={remoteReferenceArtifact}
                       alt=""
                       className="hidden"
                       onReady={() => setReferenceArtifactReady(true)}
@@ -719,7 +719,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   {renderImage(currentImage, 'w-full h-full object-contain')}
                   {resolvedChangeArtifact && changeArtifactReady && (
                     <RemoteArtifactImage
-                      value={resolvedChangeArtifact}
+                      value={remoteChangeArtifact}
                       alt="Current satellite image with AI-detected changes"
                       className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
                       onReady={() => setChangeArtifactReady(true)}
@@ -728,7 +728,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   )}
                   {resolvedChangeArtifact && !changeArtifactReady && (
                     <RemoteArtifactImage
-                      value={resolvedChangeArtifact}
+                      value={remoteChangeArtifact}
                       alt=""
                       className="hidden"
                       onReady={() => setChangeArtifactReady(true)}
@@ -866,7 +866,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 </div>
                 {resolvedChangeArtifact && changeArtifactReady && (
                   <RemoteArtifactImage
-                    value={resolvedChangeArtifact}
+                    value={remoteChangeArtifact}
                     alt="AI detected change overlay"
                     className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
                     onReady={() => setChangeArtifactReady(true)}

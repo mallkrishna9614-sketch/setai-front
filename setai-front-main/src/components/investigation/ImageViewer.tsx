@@ -15,12 +15,16 @@ import { clearGeoTIFFCache } from '../../utils/geotiffRenderer';
 interface ImageViewerProps {
   images: ImageMetadata[];
   regions?: FindingRegion[];
+  changeVisualizationUrl?: string;
+  changeMaskUrl?: string;
   isLoading?: boolean;
 }
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({
   images,
   regions = [],
+  changeVisualizationUrl,
+  changeMaskUrl,
   isLoading = false
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
@@ -43,6 +47,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const swipeBarRef = useRef<HTMLDivElement>(null);
 
   const hasMultipleImages = images.length > 1;
+  const changeArtifact = changeVisualizationUrl || changeMaskUrl;
   const effectiveViewMode = images.length < 2 ? 'single' : viewMode;
   const currentImage = images[activeImageIndex] || images[0];
 
@@ -132,23 +137,51 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const renderOverlays = (keyPrefix: string) => {
     if (!showOverlays || !regions.length) return null;
+
+    const normalizeBbox = (bbox: FindingRegion['bbox']) => {
+      const values = bbox.map(Number);
+      const maxValue = Math.max(...values.map(v => Math.abs(v)));
+
+      // Remote models may return pixel coordinates (0..1024) while
+      // the viewer uses normalized coordinates (0..1).
+      if (maxValue > 1) {
+        const scale = maxValue <= 2048 ? 1024 : maxValue;
+        return values.map(v => Math.max(0, Math.min(1, v / scale))) as [
+          number, number, number, number
+        ];
+      }
+
+      return values.map(v => Math.max(0, Math.min(1, v))) as [
+        number, number, number, number
+      ];
+    };
+
     return regions.map((reg, rIdx) => {
-      const [ymin, xmin, ymax, xmax] = reg.bbox;
+      const [ymin, xmin, ymax, xmax] = normalizeBbox(reg.bbox);
+      const cx = (xmin + xmax) / 2;
+      const cy = (ymin + ymax) / 2;
+
       return (
-        <div
-          key={reg.id || `${keyPrefix}-${rIdx}`}
-          className="absolute border border-status-error bg-status-error/15 rounded z-20 pointer-events-none"
-          style={{
-            top: `${ymin * 100}%`,
-            left: `${xmin * 100}%`,
-            width: `${(xmax - xmin) * 100}%`,
-            height: `${(ymax - ymin) * 100}%`
-          }}
-        >
-          <div className="absolute -top-5 left-0 bg-neutral-900 border border-neutral-800 text-neutral-200 px-1.5 py-0.5 rounded text-[10px] font-sans whitespace-nowrap shadow-md">
-            {reg.label} {typeof reg.confidence === 'number' && Number.isFinite(reg.confidence) ? `· ${(reg.confidence <= 1 ? reg.confidence * 100 : reg.confidence).toFixed(1)}%` : ''}
+        <React.Fragment key={reg.id || `${keyPrefix}-${rIdx}`}>
+          <div
+            className="absolute border border-status-error bg-status-error/15 rounded z-20 pointer-events-none"
+            style={{
+              top: `${ymin * 100}%`,
+              left: `${xmin * 100}%`,
+              width: `${Math.max(0.5, (xmax - xmin) * 100)}%`,
+              height: `${Math.max(0.5, (ymax - ymin) * 100)}%`
+            }}
+          >
+            <div className="absolute -top-5 left-0 bg-neutral-900 border border-neutral-800 text-neutral-200 px-1.5 py-0.5 rounded text-[10px] font-sans whitespace-nowrap shadow-md">
+              {reg.label} {typeof reg.confidence === 'number' && Number.isFinite(reg.confidence) ? `· ${(reg.confidence <= 1 ? reg.confidence * 100 : reg.confidence).toFixed(1)}%` : ''}
+            </div>
           </div>
-        </div>
+          <div
+            className="absolute z-30 w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-status-warning border-2 border-white shadow-[0_0_0_2px_rgba(0,0,0,0.55)] pointer-events-none"
+            style={{ left: `${cx * 100}%`, top: `${cy * 100}%` }}
+            title={reg.label}
+          />
+        </React.Fragment>
       );
     });
   };
@@ -347,7 +380,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   onMouseMove={(e) => handleImagePanelMouseMove(e, images[1])}
                   className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
                 >
-                  {renderImage(images[1])}
+                  {changeArtifact ? (
+                    <img src={changeArtifact} alt="Current satellite image with AI-detected changes" className="w-full h-full object-contain bg-black" loading="eager" />
+                  ) : (
+                    renderImage(images[1])
+                  )}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
                     <span className="font-semibold text-neutral-100">{images[1].slot_label || 'Image 2'}</span>
                     <span className="text-neutral-500">·</span>
@@ -419,7 +456,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 onMouseMove={(e) => handleImagePanelMouseMove(e, currentImage)}
                 className="relative w-[520px] h-[520px] max-w-full max-h-full aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
               >
-                {renderImage(currentImage)}
+                {changeArtifact ? (
+                  <img src={changeArtifact} alt="AI change-detection visualization" className="w-full h-full object-contain bg-black" loading="eager" />
+                ) : (
+                  renderImage(currentImage)
+                )}
                 <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
                   <span className="font-semibold text-neutral-100">{currentImage.slot_label || 'Image'}</span>
                   <span className="text-neutral-500">·</span>

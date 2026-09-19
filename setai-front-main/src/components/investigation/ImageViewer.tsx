@@ -172,11 +172,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     if (typeof value !== 'string') return undefined;
     const trimmed = value.trim();
     if (!trimmed) return undefined;
-    if (/^data:image\\//i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\\/\\//i.test(trimmed)) {
+    if (/^data:image\//i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\/\//i.test(trimmed)) {
       return trimmed;
     }
-    if (trimmed.length > 200 && /^[A-Za-z0-9+/=\\s_-]+$/.test(trimmed)) {
-      return `data:image/png;base64,${trimmed.replace(/\\s/g, '')}`;
+    if (trimmed.length > 200 && /^[A-Za-z0-9+/=\s_-]+$/.test(trimmed)) {
+      return `data:image/png;base64,${trimmed.replace(/\s/g, '')}`;
     }
     return undefined;
   };

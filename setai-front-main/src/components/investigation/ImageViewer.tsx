@@ -18,6 +18,8 @@ interface ImageViewerProps {
   regions?: FindingRegion[];
   changeVisualizationUrl?: string;
   changeMaskUrl?: string;
+  referenceImageUrl?: string;
+  modelOutput?: Record<string, any>;
   isLoading?: boolean;
 }
 
@@ -26,6 +28,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   regions = [],
   changeVisualizationUrl,
   changeMaskUrl,
+  referenceImageUrl,
+  modelOutput,
   isLoading = false
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
@@ -50,6 +54,40 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const hasMultipleImages = images.length > 1;
   const changeArtifact = changeVisualizationUrl || changeMaskUrl;
 
+  const findArtifact = (value: unknown, keys: string[]): string | undefined => {
+    const seen = new Set<object>();
+    const queue: unknown[] = [value];
+
+    while (queue.length) {
+      const current = queue.shift();
+      if (!current || typeof current !== 'object') continue;
+      if (seen.has(current as object)) continue;
+      seen.add(current as object);
+
+      if (Array.isArray(current)) {
+        queue.push(...current);
+        continue;
+      }
+
+      const record = current as Record<string, unknown>;
+      for (const key of keys) {
+        const candidate = record[key];
+        if (typeof candidate === 'string' && candidate.trim()) {
+          const value = candidate.trim();
+          if (value.startsWith('data:image/')) return value;
+          if (/^(blob:|https?:\/\/|\/)/i.test(value)) return value;
+          if (/^[A-Za-z0-9+/=\\s]+$/.test(value) && value.length > 200) {
+            return `data:image/png;base64,${value.replace(/\\s/g, '')}`;
+          }
+        }
+      }
+
+      queue.push(...Object.values(record));
+    }
+
+    return undefined;
+  };
+
   const resolveArtifactUrl = (value?: string): string | undefined => {
     if (!value) return undefined;
     const trimmed = value.trim();
@@ -60,7 +98,48 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return getApiBaseUrl() + '/' + trimmed;
   };
 
-  const resolvedChangeArtifact = resolveArtifactUrl(changeArtifact);
+  // The remote temporal model performs the historical lookup internally.
+  // Surface its reference image and annotated/current artifact even though
+  // the user uploaded only one image.
+  const remoteChangeArtifact =
+    changeArtifact ||
+    findArtifact(modelOutput, [
+      'change_visualization_url',
+      'change_visualization',
+      'annotated_image_url',
+      'annotated_image',
+      'overlay_image_url',
+      'overlay_image',
+      'current_with_changes',
+      'current_image_with_changes',
+      'visualization_url',
+      'visualization',
+      'artifact_url',
+      'image_url',
+      'visualization_base64',
+      'overlay_base64',
+      'annotated_image_base64',
+      'change_visualization_base64'
+    ]);
+
+  const remoteReferenceArtifact =
+    referenceImageUrl ||
+    findArtifact(modelOutput, [
+      'reference_image_url',
+      'reference_image',
+      'reference',
+      'before_image_url',
+      'before_image',
+      'historical_image_url',
+      'historical_image',
+      'reference_base64',
+      'reference_image_base64',
+      'before_image_base64'
+    ]);
+
+  const resolvedChangeArtifact = resolveArtifactUrl(remoteChangeArtifact);
+  const resolvedReferenceArtifact = resolveArtifactUrl(remoteReferenceArtifact);
+  const hasRemoteTemporalComparison = Boolean(resolvedReferenceArtifact);
   const effectiveViewMode = images.length < 2 ? 'single' : viewMode;
   const currentImage = images[activeImageIndex] || images[0];
 
@@ -370,7 +449,42 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             }}
           >
             {/* 1. SIDE-BY-SIDE COMPARISON (Image 1 and Image 2 displayed side-by-side) */}
-            {effectiveViewMode === 'side-by-side' && images.length >= 2 ? (
+            {hasRemoteTemporalComparison ? (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-full max-h-full">
+                <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
+                  <img
+                    src={resolvedReferenceArtifact}
+                    alt="Historical satellite reference used by the temporal change model"
+                    className="w-full h-full object-contain bg-black"
+                    loading="eager"
+                  />
+                  <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-10 shadow-md">
+                    <span className="font-semibold">Historical reference</span>
+                  </div>
+                </div>
+
+                <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
+                  {resolvedChangeArtifact ? (
+                    <img
+                      src={resolvedChangeArtifact}
+                      alt="Current satellite image with AI-detected changes"
+                      className="w-full h-full object-contain bg-black"
+                      loading="eager"
+                      onError={(event) => {
+                        console.warn('SatQuery AI - remote change visualization failed:', resolvedChangeArtifact);
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    renderImage(currentImage, 'w-full h-full object-contain')
+                  )}
+                  <div className="absolute top-2.5 left-2.5 bg-neutral-950/90 px-2 py-1 rounded text-[11px] font-mono text-neutral-200 border border-neutral-800 z-10 shadow-md">
+                    <span className="font-semibold">Current + detected changes</span>
+                  </div>
+                  {renderOverlays('remote-change')}
+                </div>
+              </div>
+            ) : effectiveViewMode === 'side-by-side' && images.length >= 2 ? (
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-full max-h-full">
                 {/* Image 1 Panel */}
                 <div

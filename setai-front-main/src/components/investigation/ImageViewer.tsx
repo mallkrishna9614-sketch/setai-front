@@ -625,19 +625,28 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   onMouseMove={(e) => handleImagePanelMouseMove(e, images[1])}
                   className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
                 >
-                  {resolvedChangeArtifact ? (
+                  {renderImage(images[1], 'w-full h-full object-contain')}
+                  {resolvedChangeArtifact && changeArtifactReady && (
                     <img
                       src={resolvedChangeArtifact}
                       alt="Current satellite image with AI-detected changes"
-                      className="w-full h-full object-contain bg-black"
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
                       loading="eager"
-                      onError={(event) => {
-                        console.warn('SatQuery AI - change artifact failed:', resolvedChangeArtifact);
-                        event.currentTarget.style.display = 'none';
+                    />
+                  )}
+                  {resolvedChangeArtifact && !changeArtifactReady && (
+                    <img
+                      src={resolvedChangeArtifact}
+                      alt=""
+                      aria-hidden="true"
+                      className="hidden"
+                      loading="eager"
+                      onLoad={() => setChangeArtifactReady(true)}
+                      onError={() => {
+                        console.warn('SatQuery AI - change artifact unavailable:', resolvedChangeArtifact);
+                        setChangeArtifactReady(false);
                       }}
                     />
-                  ) : (
-                    renderImage(images[1])
                   )}
                   <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">
                     <span className="font-semibold text-neutral-100">{images[1].slot_label || 'Image 2'}</span>
@@ -713,7 +722,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 <div className="absolute inset-0 flex items-center justify-center">
                   {renderImage(currentImage, 'w-full h-full object-contain')}
                 </div>
-                {resolvedChangeArtifact && (
+                {resolvedChangeArtifact && changeArtifactReady && (
                   <img
                     src={resolvedChangeArtifact}
                     alt="AI detected change overlay"
@@ -723,10 +732,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                       mixBlendMode: changeMaskUrl ? 'screen' : 'normal'
                     }}
                     loading="eager"
-                    onError={(event) => {
-                      console.warn('SatQuery AI - change artifact failed to load:', resolvedChangeArtifact);
-                      event.currentTarget.style.display = 'none';
-                    }}
                   />
                 )}
                 <div className="absolute top-2.5 left-2.5 bg-neutral-950/85 backdrop-blur-xs px-2 py-0.5 rounded text-[11px] font-mono text-neutral-300 border border-neutral-800 z-10 flex items-center gap-1.5 shadow-md">

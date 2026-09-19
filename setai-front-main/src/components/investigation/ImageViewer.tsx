@@ -114,11 +114,24 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     if (!value) return undefined;
     const trimmed = value.trim();
     if (!trimmed) return undefined;
+
     if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
-    // Browser-loadable absolute artifact URLs should be used directly.
-    // The backend does not need to proxy ML-generated images.
     if (/^https?:\/\//i.test(trimmed)) return trimmed;
     if (trimmed.startsWith('//')) return window.location.protocol + trimmed;
+
+    // ML responses often contain artifact filenames like "train_11.png".
+    // Such paths are relative to the ML service, not the Vercel frontend.
+    const mlBase = (
+      import.meta.env.VITE_ML_ARTIFACT_BASE_URL ||
+      import.meta.env.VITE_ML_BASE_URL ||
+      ''
+    ).replace(/\/+$/, '');
+
+    if (mlBase) {
+      return `${mlBase}/${trimmed.replace(/^\/+/, '')}`;
+    }
+
+    // Fallback for deployments where the backend proxies ML artifacts.
     if (trimmed.startsWith('/')) return getApiBaseUrl() + trimmed;
     return getApiBaseUrl() + '/' + trimmed;
   };
@@ -612,8 +625,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                   onMouseMove={(e) => handleImagePanelMouseMove(e, images[1])}
                   className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center"
                 >
-                  {changeArtifact ? (
-                    <img src={changeArtifact} alt="Current satellite image with AI-detected changes" className="w-full h-full object-contain bg-black" loading="eager" />
+                  {resolvedChangeArtifact ? (
+                    <img
+                      src={resolvedChangeArtifact}
+                      alt="Current satellite image with AI-detected changes"
+                      className="w-full h-full object-contain bg-black"
+                      loading="eager"
+                      onError={(event) => {
+                        console.warn('SatQuery AI - change artifact failed:', resolvedChangeArtifact);
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
                   ) : (
                     renderImage(images[1])
                   )}

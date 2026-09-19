@@ -46,15 +46,8 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [investigation, setInvestigation] = useState<InvestigationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const resultsRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (investigation?.status === 'completed') {
-      window.setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, [investigation?.investigation_id, investigation?.status]);
+  // Keep the judge at the main investigation viewport after execution.
+  // Results are rendered directly below it; avoid forcing an automatic page jump.
 
   const applyScenario = (sc: ScenarioDefinition) => {
     setQuery(sc.query);
@@ -305,7 +298,7 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
       </div>
 
       {investigation && (
-        <div ref={resultsRef} className="scroll-mt-6 space-y-5">
+        <div className="space-y-4">
           {changeAnalysis && <ChangeAnalysisPanel data={changeAnalysis} />}
 
           {investigation.finding && !changeAnalysis && (

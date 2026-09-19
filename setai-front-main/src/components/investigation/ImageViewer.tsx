@@ -62,9 +62,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const findArtifact = (value: unknown, keys: string[]): string | undefined => {
     const seen = new Set<object>();
-    const queue: Array<{ value: unknown; keyHint?: string }> = [{ value }];
+    const queue: Array<{ value: unknown }> = [{ value }];
 
-    const asImageSource = (candidate: unknown, keyHint = ''): string | undefined => {
+    const asImageSource = (candidate: unknown): string | undefined => {
       if (typeof candidate !== 'string') return undefined;
       const text = candidate.trim();
       if (!text) return undefined;
@@ -80,30 +80,30 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     };
 
     while (queue.length) {
-      const { value: current, keyHint } = queue.shift()!;
+      const { value: current } = queue.shift()!;
       if (!current || typeof current !== 'object') continue;
       if (seen.has(current as object)) continue;
       seen.add(current as object);
 
       if (Array.isArray(current)) {
-        current.forEach(item => queue.push({ value: item, keyHint }));
+        current.forEach(item => queue.push({ value: item }));
         continue;
       }
 
       const record = current as Record<string, unknown>;
 
       for (const key of keys) {
-        const candidate = asImageSource(record[key], key);
+        const candidate = asImageSource(record[key]);
         if (candidate) return candidate;
       }
 
       for (const [key, candidate] of Object.entries(record)) {
-        const source = asImageSource(candidate, key);
+        const source = asImageSource(candidate);
         if (source && /base64|image|visual|overlay|mask|change|reference|historical|before|current/i.test(key)) {
           return source;
         }
         if (candidate && typeof candidate === 'object') {
-          queue.push({ value: candidate, keyHint: key });
+          queue.push({ value: candidate });
         }
       }
     }
@@ -168,8 +168,30 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       'change_visualization_base64'
     ]);
 
+  const normalizeEmbeddedArtifact = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^data:image\\//i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\\/\\//i.test(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.length > 200 && /^[A-Za-z0-9+/=\\s_-]+$/.test(trimmed)) {
+      return `data:image/png;base64,${trimmed.replace(/\\s/g, '')}`;
+    }
+    return undefined;
+  };
+
   const remoteReferenceArtifact =
     (typeof referenceImageUrl === 'string' ? referenceImageUrl : findArtifact(referenceImageUrl, ['url','src','href','path','uri','image_url','data_url'])) ||
+    normalizeEmbeddedArtifact(findArtifact(modelOutput, [
+      'reference_base64',
+      'reference_image_base64',
+      'historical_image_base64',
+      'before_image_base64',
+      'image_base64',
+      'image_data_url',
+      'data_url'
+    ])) ||
     findArtifact(modelOutput, [
       'reference_image_url',
       'reference_image',

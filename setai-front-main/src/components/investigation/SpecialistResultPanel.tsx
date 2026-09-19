@@ -27,6 +27,9 @@ interface NormalizedModelOutput {
   regionFindings?: ChangeRegionFinding[];
   whatChanged?: string;
   why?: string;
+  changeVisualizationUrl?: string;
+  changeMaskUrl?: string;
+  sarMaskUrl?: string;
   raw?: unknown;
 }
 
@@ -234,6 +237,29 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     'rationale'
   );
 
+  const changeVisualizationUrl = textValue(
+    output,
+    'change_visualization_url',
+    'change_visualization',
+    'annotated_image',
+    'overlay_image',
+    'current_with_changes',
+    'visualization_url'
+  );
+  const changeMaskUrl = textValue(
+    output,
+    'change_mask_url',
+    'change_mask',
+    'change_map',
+    'mask_url'
+  );
+  const sarMaskUrl = textValue(
+    output,
+    'sar_mask_url',
+    'sar_change_mask',
+    'sar_mask'
+  );
+
   const evidence = Array.isArray(output.evidence)
     ? output.evidence.filter(asRecord) as Array<Record<string, unknown>>
     : undefined;
@@ -254,6 +280,9 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
     regionFindings,
     whatChanged,
     why,
+    changeVisualizationUrl,
+    changeMaskUrl,
+    sarMaskUrl,
     raw: output
   };
 }
@@ -310,7 +339,10 @@ export function deriveSpecialistChangeAnalysis(
       change_type: normalized.changeType,
       what_changed: normalized.whatChanged,
       why: normalized.why,
-      region_findings: normalized.regionFindings
+      region_findings: normalized.regionFindings,
+      change_visualization_url: normalized.changeVisualizationUrl,
+      change_mask_url: normalized.changeMaskUrl,
+      sar_mask_url: normalized.sarMaskUrl
     };
   }
 

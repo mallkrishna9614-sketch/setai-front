@@ -18,7 +18,7 @@ interface ImageViewerProps {
   regions?: FindingRegion[];
   changeVisualizationUrl?: string;
   changeMaskUrl?: string;
-  referenceImageUrl?: string;
+  referenceImageUrl?: string | Record<string, any>;
   modelOutput?: Record<string, any>;
   isLoading?: boolean;
 }
@@ -123,7 +123,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     ]);
 
   const remoteReferenceArtifact =
-    referenceImageUrl ||
+    (typeof referenceImageUrl === 'string' ? referenceImageUrl : findArtifact(referenceImageUrl, ['url','src','href','path','uri','image_url','data_url'])) ||
     findArtifact(modelOutput, [
       'reference_image_url',
       'reference_image',

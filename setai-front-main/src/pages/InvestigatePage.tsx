@@ -198,6 +198,11 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
   const nonChangeModelResults = modelResults.filter(
     model => !String(model.task || '').toLowerCase().includes('change')
   );
+  const executionComplete =
+    investigation?.status === 'completed' ||
+    (!isLoading &&
+      modelResults.length > 0 &&
+      modelResults.every(model => !['failed', 'error'].includes(String(model.status || '').toLowerCase())));
 
   return (
     <div className="space-y-6 pb-12">
@@ -318,7 +323,11 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {investigation.tasks && investigation.tasks.length > 0 && (
-              <InvestigationPlan tasks={investigation.tasks} isLoading={isLoading} />
+              <InvestigationPlan
+                tasks={investigation.tasks}
+                isLoading={isLoading}
+                executionComplete={executionComplete}
+              />
             )}
 
             {investigation.execution?.evidence && (

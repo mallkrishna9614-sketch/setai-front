@@ -47,6 +47,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     slot?: string;
   } | null>(null);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
+  const [referenceArtifactReady, setReferenceArtifactReady] = useState<boolean>(false);
+  const [changeArtifactReady, setChangeArtifactReady] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const swipeBarRef = useRef<HTMLDivElement>(null);
@@ -170,6 +172,15 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const resolvedChangeArtifact = resolveArtifactUrl(remoteChangeArtifact);
   const resolvedReferenceArtifact = resolveArtifactUrl(remoteReferenceArtifact);
   const hasRemoteTemporalComparison = Boolean(resolvedReferenceArtifact);
+  
+  React.useEffect(() => {
+    setReferenceArtifactReady(false);
+  }, [resolvedReferenceArtifact]);
+
+  React.useEffect(() => {
+    setChangeArtifactReady(false);
+  }, [resolvedChangeArtifact]);
+
   const effectiveViewMode = images.length < 2 ? 'single' : viewMode;
   const currentImage = images[activeImageIndex] || images[0];
 
@@ -177,6 +188,8 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return () => {
       // Clear cached canvases on unmount
       clearGeoTIFFCache();
+      previewUrlCache.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlCache.current.clear();
     };
   }, []);
 
@@ -247,12 +260,23 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return getApiBaseUrl() + '/' + trimmed;
   };
 
+  const previewUrlCache = useRef<Map<string, string>>(new Map());
+
+  const getLocalPreviewUrl = (image: ImageMetadata): string => {
+    if (!image.file) return '';
+    const key = image.image_id || image.filename;
+    const cached = previewUrlCache.current.get(key);
+    if (cached) return cached;
+    const url = URL.createObjectURL(image.file);
+    previewUrlCache.current.set(key, url);
+    return url;
+  };
+
   const renderImage = (image: ImageMetadata, className?: string) => {
     if (!isGeoTIFF(image)) {
       // Prefer the original browser File for uploaded PNG/JPEG images.
-      // Backend preview URLs may point to temporary/internal paths; the local
-      // object URL is the most reliable source during an investigation.
-      const localSrc = image.file ? URL.createObjectURL(image.file) : '';
+      // Backend preview URLs may point to temporary/internal paths.
+      const localSrc = getLocalPreviewUrl(image);
       const src = localSrc || resolvePreviewUrl(image.preview_url) || '';
       if (!src) {
         return (
@@ -509,15 +533,24 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 {/* Historical/reference panel. Always keep the uploaded image as a visual fallback. */}
                 <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
                   {renderImage(images[0], 'w-full h-full object-contain')}
-                  {resolvedReferenceArtifact && (
+                  {resolvedReferenceArtifact && referenceArtifactReady && (
                     <img
                       src={resolvedReferenceArtifact}
                       alt="Historical satellite reference used by the temporal change model"
-                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                      className="absolute inset-0 w-full h-full object-contain z-10"
                       loading="eager"
-                      onError={(event) => {
+                    />
+                  )}
+                  {resolvedReferenceArtifact && !referenceArtifactReady && (
+                    <img
+                      src={resolvedReferenceArtifact}
+                      alt=""
+                      aria-hidden="true"
+                      className="hidden"
+                      onLoad={() => setReferenceArtifactReady(true)}
+                      onError={() => {
                         console.warn('SatQuery AI - historical artifact unavailable:', resolvedReferenceArtifact);
-                        event.currentTarget.style.display = 'none';
+                        setReferenceArtifactReady(false);
                       }}
                     />
                   )}
@@ -529,15 +562,24 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 {/* Current panel. Always show the user's current upload; ML visualization is an overlay. */}
                 <div className="relative w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] md:w-[480px] md:h-[480px] max-w-[46vw] max-h-[72vh] aspect-square border border-neutral-800 shadow-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
                   {renderImage(currentImage, 'w-full h-full object-contain')}
-                  {resolvedChangeArtifact && (
+                  {resolvedChangeArtifact && changeArtifactReady && (
                     <img
                       src={resolvedChangeArtifact}
                       alt="Current satellite image with AI-detected changes"
                       className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
                       loading="eager"
-                      onError={(event) => {
+                    />
+                  )}
+                  {resolvedChangeArtifact && !changeArtifactReady && (
+                    <img
+                      src={resolvedChangeArtifact}
+                      alt=""
+                      aria-hidden="true"
+                      className="hidden"
+                      onLoad={() => setChangeArtifactReady(true)}
+                      onError={() => {
                         console.warn('SatQuery AI - change visualization unavailable:', resolvedChangeArtifact);
-                        event.currentTarget.style.display = 'none';
+                        setChangeArtifactReady(false);
                       }}
                     />
                   )}

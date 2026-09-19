@@ -332,8 +332,8 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
             <ExecutionTrace trace={investigation.execution.trace} defaultExpanded={false} />
           )}
 
-          {investigation.execution?.model_results && investigation.execution.model_results.length > 0 && (
-            <ModelResultsList models={investigation.execution.model_results} />
+          {nonChangeModelResults.length > 0 && (
+            <ModelResultsList models={nonChangeModelResults} />
           )}
         </div>
       )}

@@ -292,6 +292,8 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
           <ImageViewer
             images={images}
             regions={displayRegions}
+            changeVisualizationUrl={changeAnalysis?.change_visualization_url}
+            changeMaskUrl={changeAnalysis?.change_mask_url}
             isLoading={isLoading}
           />
         </div>

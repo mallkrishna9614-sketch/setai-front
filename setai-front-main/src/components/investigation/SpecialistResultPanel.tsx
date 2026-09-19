@@ -102,6 +102,36 @@ function normalizeRegion(value: unknown, index: number): FindingRegion | null {
   };
 }
 
+function findNestedArray(record: Record<string, unknown> | null, keys: string[]): unknown[] | undefined {
+  if (!record) return undefined;
+  const wanted = new Set(keys.map(key => key.toLowerCase()));
+  const queue: unknown[] = [record];
+  const seen = new Set<object>();
+
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value || typeof value !== 'object') continue;
+    if (seen.has(value as object)) continue;
+    seen.add(value as object);
+
+    if (Array.isArray(value)) {
+      queue.push(...value);
+      continue;
+    }
+
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      if (wanted.has(key.toLowerCase()) && Array.isArray(child)) {
+        return child;
+      }
+      if (child && typeof child === 'object') {
+        queue.push(child);
+      }
+    }
+  }
+
+  return undefined;
+}
+
 function normalizeRegions(value: unknown): FindingRegion[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -274,24 +304,35 @@ function normalizeModel(model: ModelResult): NormalizedModelOutput {
         ? output.change_class
         : undefined;
 
-  const regions = normalizeRegions(
-    output.regions ??
-    output.changed_regions ??
-    output.detections ??
-    output.region_findings ??
-    output.change_findings
-  );
+  // ML providers may wrap the actual payload several levels deep
+  // (for example result -> output -> data). Search recursively so
+  // region boxes are still available to the viewer even when no PNG
+  // artifact is exposed by the remote service.
+  const regionArray = findNestedArray(output, [
+    'regions',
+    'changed_regions',
+    'detections',
+    'region_findings',
+    'change_findings',
+    'semantic_findings',
+    'findings',
+    'descriptions'
+  ]);
+
+  const regions = normalizeRegions(regionArray);
 
   const regionFindings = normalizeRegionFindings(
-    output.region_findings ??
-    output.region_analysis ??
-    output.semantic_findings ??
-    output.change_findings ??
-    output.findings ??
-    output.descriptions ??
-    output.regions ??
-    output.changed_regions ??
-    output.detections
+    findNestedArray(output, [
+      'region_findings',
+      'region_analysis',
+      'semantic_findings',
+      'change_findings',
+      'findings',
+      'descriptions',
+      'regions',
+      'changed_regions',
+      'detections'
+    ])
   );
 
   const whatChanged =

@@ -278,6 +278,8 @@ export const InvestigatePage: React.FC<InvestigatePageProps> = ({
           {investigation?.execution?.confidence && (
             <ConfidenceGauge
               confidence={investigation.execution.confidence}
+              modelSignal={changeAnalysis?.signal}
+              modelSignalLabel="Change-model detection signal"
             />
           )}
         </div>

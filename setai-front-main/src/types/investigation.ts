@@ -107,7 +107,7 @@ export interface ChangeRegionFinding {
 
 export interface ChangeAnalysisData {
   comparison?: string;
-  reference_image?: string;
+  reference_image?: string | Record<string, any>;
   match_score?: number;
   changed_area?: number;
   regions?: number | FindingRegion[];

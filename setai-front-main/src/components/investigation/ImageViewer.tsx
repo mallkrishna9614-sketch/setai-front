@@ -147,12 +147,25 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   // The remote temporal model performs the historical lookup internally.
   // Surface its reference image and annotated/current artifact even though
   // the user uploaded only one image.
+  const normalizeEmbeddedArtifact = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^data:image\//i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.length > 200 && /^[A-Za-z0-9+/=\s_-]+$/.test(trimmed)) {
+      return \`data:image/png;base64,\${trimmed.replace(/\s/g, '')}\`;
+    }
+    return undefined;
+  };
+
   const isDirectArtifactPointer = (value: unknown): value is string => {
     if (typeof value !== 'string') return false;
     const trimmed = value.trim();
-    return /^data:image\\//i.test(trimmed) ||
+    return /^data:image\//i.test(trimmed) ||
       /^blob:/i.test(trimmed) ||
-      /^https?:\\/\\//i.test(trimmed) ||
+      /^https?:\/\//i.test(trimmed) ||
       trimmed.startsWith('/');
   };
 
@@ -181,19 +194,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       'artifact_url',
       'image_url'
     ]);
-
-  const normalizeEmbeddedArtifact = (value: unknown): string | undefined => {
-    if (typeof value !== 'string') return undefined;
-    const trimmed = value.trim();
-    if (!trimmed) return undefined;
-    if (/^data:image\//i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
-    if (trimmed.length > 200 && /^[A-Za-z0-9+/=\s_-]+$/.test(trimmed)) {
-      return `data:image/png;base64,${trimmed.replace(/\s/g, '')}`;
-    }
-    return undefined;
-  };
 
   const remoteReferenceArtifact =
     (isDirectArtifactPointer(referenceImageUrl) ? referenceImageUrl : undefined) ||

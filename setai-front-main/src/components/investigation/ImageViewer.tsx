@@ -73,10 +73,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       }
 
       const looksLikeBase64 = /^[A-Za-z0-9+/=\s_-]+$/.test(text) && text.length > 200;
-      if (looksLikeBase64 && (
-        keys.includes(keyHint) ||
-        /base64|image|visual|overlay|mask|change|reference|historical|before|current/i.test(keyHint)
-      )) {
+      if (looksLikeBase64) {
         return `data:image/jpeg;base64,${text.replace(/\s/g, '')}`;
       }
       return undefined;
@@ -123,19 +120,17 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     if (/^https?:\/\//i.test(trimmed)) return trimmed;
     if (trimmed.startsWith('//')) return window.location.protocol + trimmed;
 
-    // A bare filename such as train_11.png is NOT a browser-fetchable
-    // artifact URL. The remote ML service currently reports these names
-    // without exposing them as public static files. Do not request the
-    // filename from Vercel; the viewer will render the ML change regions
-    // directly over the current image instead.
+    // Remote ML may return generated artifacts as bare filenames.
+    // Resolve those against the ML service, not the Vercel frontend host.
     if (/^[^/\\]+\.(png|jpe?g|webp|gif|tiff?)$/i.test(trimmed)) {
-      return undefined;
+      return ML_ARTIFACT_BASE_URL + '/' + trimmed;
     }
 
-    // Only resolve explicit backend-relative paths here. Never guess that
-    // an arbitrary ML filename lives at the Cloudflare tunnel root.
-    if (trimmed.startsWith('/')) return getApiBaseUrl() + trimmed;
-    return undefined;
+    if (trimmed.startsWith('/')) {
+      return getApiBaseUrl() + trimmed;
+    }
+
+    return ML_ARTIFACT_BASE_URL + '/' + trimmed.replace(/^\/+/, '');
   };
 
   // The remote temporal model performs the historical lookup internally.

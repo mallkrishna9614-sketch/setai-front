@@ -136,7 +136,7 @@ function findNestedText(record: Record<string, unknown> | null, ...keys: string[
     if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
 
     const obj = value as Record<string, unknown>;
-    for (const key of ['url', 'src', 'href', 'path', 'uri', 'data_url', 'image_url']) {
+    for (const key of ['url', 'src', 'href', 'path', 'uri', 'data_url', 'image_url', 'base64', 'image_base64', 'data']) {
       const found = scalarText(obj[key]);
       if (found) return found;
     }

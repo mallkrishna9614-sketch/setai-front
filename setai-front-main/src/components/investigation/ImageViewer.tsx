@@ -235,9 +235,22 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
   const isGeoTIFF = (image: ImageMetadata) => /\.(tif|tiff)$/i.test(image.filename);
 
+  const resolvePreviewUrl = (value?: string): string | undefined => {
+    if (!value) return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed) || /^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('//')) return window.location.protocol + trimmed;
+    if (trimmed.startsWith('/')) return getApiBaseUrl() + trimmed;
+    return getApiBaseUrl() + '/' + trimmed;
+  };
+
   const renderImage = (image: ImageMetadata, className?: string) => {
     if (!isGeoTIFF(image)) {
-      const src = image.preview_url || (image.file ? URL.createObjectURL(image.file) : '');
+      const src = resolvePreviewUrl(image.preview_url) ||
+        (image.file ? URL.createObjectURL(image.file) : '');
       if (!src) {
         return (
           <div className="text-xs text-neutral-500 text-center p-4">
@@ -251,6 +264,15 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           alt={image.filename}
           className={className || 'max-w-full max-h-full object-contain'}
           draggable={false}
+          onError={(event) => {
+            console.warn('SatQuery AI - image preview failed:', src);
+            const localSrc = image.file ? URL.createObjectURL(image.file) : '';
+            if (localSrc && event.currentTarget.src !== localSrc) {
+              event.currentTarget.src = localSrc;
+              return;
+            }
+            event.currentTarget.style.display = 'none';
+          }}
         />
       );
     }
